@@ -126,6 +126,7 @@ endif()
 
 target_link_libraries(hexicord Beast Threads::Threads Boost::system)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
+target_include_directories(hexicord PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # XXX: Look into path relocation for headers.
 #install(FILES ${HEXICORD_HEADERS} DESTINATION include/)
 install(TARGETS hexicord 
