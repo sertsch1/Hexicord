@@ -10,6 +10,7 @@ cmake_policy(SET CMP0048 NEW)
 # Will be used later.
 #include(cmake/version_detect.cmake)
 set(HEXICORD_VERSION 0.0.0)
+add_definitions(-DHEXICORD_VERSION="0.0.0")
 
 project(Hexicord VERSION ${HEXICORD_VERSION})
 
@@ -54,7 +55,6 @@ endif()
 #------------------------------------------------------------------------------
 # Documentation (Doxygen)
 
-# Uncomment once Doxyfile is created.
 find_package(Doxygen)
 option(BUILD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
 option(INTERNAL_DOCS "Generate documentation for internal classes." OFF)
@@ -65,6 +65,9 @@ endif()
 
 #------------------------------------------------------------------------------
 # Boost
+
+set(Boost_USE_STATIC_LIBS    ON)
+set(Boost_USE_STATIC_RUNTIME ON)
 
 find_package(Boost REQUIRED COMPONENTS system)
 link_directories(${Boost_LIBRARY_DIRS})
@@ -94,10 +97,15 @@ find_package(Threads REQUIRED)
 #------------------------------------------------------------------------------
 # Beast
 
-set(Beast_BUILD_EXAMPLES OFF)
-set(Beast_BUILD_TESTS    OFF)
+#set(Beast_BUILD_EXAMPLES OFF)
+#set(Beast_BUILD_TESTS    OFF)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/lib/beast)
+# Doesn't required actually. All dependencies of beast handled by this
+# CMakeLists.txt. Also inclusion of beast's CMakeLists forces us to build
+# tests and examples (painful and slow due to high memory usage of compiler 
+# when parsing dense templates (up to 700 MiB)). set's above seems to be 
+# ignored.
+#add_subdirectory(${PROJECT_SOURCE_DIR}/lib/beast)
 include_directories(${PROJECT_SOURCE_DIR}/lib/beast/include)
 
 
@@ -116,6 +124,8 @@ option(HEXICORD_EXAMPLES "Build examples."       OFF)
 file(GLOB_RECURSE HEXICORD_HEADERS ${PROJECT_SOURCE_DIR}/src/*.hpp)
 file(GLOB_RECURSE HEXICORD_SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
+include_directories(hexicord ${PROJECT_SOURCE_DIR}/src)
+
 if(STATIC_HEXICORD)
     add_library(hexicord STATIC ${HEXICORD_HEADERS} ${HEXICORD_SOURCES})
 endif()
@@ -126,7 +136,6 @@ endif()
 
 target_link_libraries(hexicord Beast Threads::Threads Boost::system)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
-target_include_directories(hexicord PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # XXX: Look into path relocation for headers.
 #install(FILES ${HEXICORD_HEADERS} DESTINATION include/)
 install(TARGETS hexicord 
