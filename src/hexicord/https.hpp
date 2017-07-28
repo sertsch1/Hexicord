@@ -7,7 +7,7 @@
 #include <boost/asio/io_service.hpp>
 #include <beast/http/field.hpp>
 
-namespace Hexicord { namespace __REST {
+namespace Hexicord { namespace REST {
     using IOService = boost::asio::io_service;
     using Headers   = std::unordered_map<beast::http::field, std::string>;
     using Bytes     = std::vector<uint8_t>;
