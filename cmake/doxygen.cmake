@@ -3,7 +3,7 @@ if (NOT DOXYGEN_FOUND)
     # Don't have to put everything else in else branch because FATAL_ERROR aborts configuration.
 endif()
 
-if(INTERNAL_DOCS)
+if(HEXICORD_IDOCS)
     set(_INTERNAL_DOCS "YES")
 else()
     set(_INTERNAL_DOCS "NO")

@@ -8,11 +8,16 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 cmake_policy(SET CMP0048 NEW)
 
 # Will be used later.
-#include(cmake/version_detect.cmake)
+#include(${PROJECT_SOURCE_DIR}/cmake/version_detect.cmake)
 set(HEXICORD_VERSION 0.0.0)
-add_definitions(-DHEXICORD_VERSION="0.0.0")
 
 project(Hexicord VERSION ${HEXICORD_VERSION})
+
+#------------------------------------------------------------------------------
+# Global building configuration (C++ standard, defines, warning flags, cotire).
+
+add_definitions(-DHEXICORD_VERSION="${HEXICORD_VERSION}" 
+                -DHEXICORD_GITHUB="https://github.com/HexwellC/Hexicord")
 
 # Generate compilation database for YouCompleteMe and stuff like clang-tidy.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -51,13 +56,21 @@ else()
     message(WARNING "Using WERROR/WSTRICT with non-GCC like compiler is not supported. Ignoring.")
 endif()
 
+option(HEXICORD_COTIRE  "Use Cotire (compile time reducer)."    ON)
+if(HEXICORD_COTIRE)
+    include(${PROJECT_SOURCE_DIR}/cmake/cotire.cmake)
+else()
+    # Declare stub that does nothing.
+    function(cotire target)
+    endfunction()
+endif()
 
 #------------------------------------------------------------------------------
 # Documentation (Doxygen)
 
 find_package(Doxygen)
-option(BUILD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
-option(INTERNAL_DOCS "Generate documentation for internal classes." OFF)
+option(HEXICORD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
+option(HEXICORD_IDOCS   "Generate documentation for internal classes." OFF)
 if(BUILD_DOCS)
    include(cmake/doxygen.cmake)
 endif()
@@ -115,7 +128,7 @@ include_directories(${PROJECT_SOURCE_DIR}/lib/beast/include)
 include_directories(${PROJECT_SOURCE_DIR}/lib)
 
 #------------------------------------------------------------------------------
-# Library (alram: CMake magic).
+# Library
 
 option(STATIC_HEXICORD   "Build static library." ON )
 option(SHARED_HEXICORD   "Build shared library." OFF)
@@ -136,6 +149,9 @@ endif()
 
 target_link_libraries(hexicord Beast Threads::Threads Boost::system)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
+
+cotire(hexicord)
+
 # XXX: Look into path relocation for headers.
 #install(FILES ${HEXICORD_HEADERS} DESTINATION include/)
 install(TARGETS hexicord 
