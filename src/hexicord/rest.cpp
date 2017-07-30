@@ -74,6 +74,9 @@ HTTPResponse httpsRequest(IOService& ioService, const std::string& servername,
     HTTPResponse responseStruct;
     responseStruct.statusCode = response.result_int();
     responseStruct.body       = response.body;
+    for (const auto& header : response) {
+        responseStruct.headers.insert({ header.name_string().to_string(), header.value().to_string() });
+    }
 
     return responseStruct;
 }
