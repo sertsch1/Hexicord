@@ -1,4 +1,6 @@
-#include <hexicord/wss.hpp>
+#include "hexicord/wss.hpp"
+#include <beast/core/drain_buffer.hpp>
+#include <boost/asio/connect.hpp>
 
 using namespace Hexicord;
 
@@ -13,9 +15,7 @@ TLSWebSocket::TLSWebSocket(IOService& ioService, const std::string& servername, 
     // TCP hanshake.
     boost::asio::connect(wsStream.next_layer().next_layer(), lookupResult);
 
-    for (const auto cert : caCerts) {
-        tlsContext.add_certificate_authority(boost::asio::buffer(cert.data(), cert.size()));
-    }
+    tlsContext.set_default_verify_paths();
     tlsContext.set_verify_mode(ssl::verify_peer | ssl::verify_fail_if_no_peer_cert);
 
     // TLS handshake.

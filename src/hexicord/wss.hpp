@@ -1,29 +1,30 @@
 #ifndef HEXICORD_WSS_HPP
 #define HEXICORD_WSS_HPP
 
-#include <string>
-#include <vector>
-#include <memory>
-#include <beast/core.hpp>
-#include <beast/websocket.hpp>
-#include <beast/websocket/ssl.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include "ca_certs.hpp"
+#include <string>                       // std::string
+#include <vector>                       // std::vector
+#include <memory>                       // std::enable_shared_from_this
+#include <beast/core/error.hpp>         // beast::error_code, beast::system_error 
+#include <beast/websocket/stream.hpp>   // websocket::stream
+#include <beast/websocket/ssl.hpp>      // required to use ssl::stream beyond websocket
+#include <boost/asio/ip/tcp.hpp>        // tcp::socket 
+#include <boost/asio/io_service.hpp>    // asio::io_service
+#include <boost/asio/ssl/context.hpp>   // ssl::context
+#include <boost/asio/ssl/stream.hpp>    // ssl::stream
 
 namespace Hexicord {
-    namespace ssl = boost::asio::ssl;
+    namespace ssl       = boost::asio::ssl;
     namespace websocket = beast::websocket;
-    using tcp = boost::asio::ip::tcp;
-    using IOService = boost::asio::io_service;
 
     /**
      * High-level beast WebSockets wrapper. Provides basic I/O operations:
      * read, send, async read, async write.
      */
     class TLSWebSocket : std::enable_shared_from_this<TLSWebSocket> {
-        using TLSStream = ssl::stream<tcp::socket>;
+        using TLSStream = ssl::stream<boost::asio::ip::tcp::socket>;
         using WSSStream = websocket::stream<TLSStream>;
+        using IOService = boost::asio::io_service;
+        using tcp = boost::asio::ip::tcp;
     public:
         using AsyncReadCallback = std::function<void(TLSWebSocket&, const std::vector<uint8_t>&, beast::error_code)>;
         using AsyncSendCallback = std::function<void(TLSWebSocket&, beast::error_code)>;
