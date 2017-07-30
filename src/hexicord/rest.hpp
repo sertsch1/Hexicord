@@ -15,11 +15,6 @@ namespace Hexicord { namespace REST {
 
     struct HTTPResponse {
         unsigned statusCode;
-        
-        /**
-         * \warning I didn't found correct way to extract headers from response.
-         * So this field always empty.
-         */
         Headers headers;
         Bytes body;
     };
