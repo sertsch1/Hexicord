@@ -4,29 +4,20 @@
 
 using namespace Hexicord;
 
-TLSWebSocket::TLSWebSocket(IOService& ioService, const std::string& servername, const std::string& path) 
+TLSWebSocket::TLSWebSocket(IOService& ioService, const std::string& servername, unsigned short port) 
     : tlsContext(ssl::context::tlsv12_client)
     , wsStream(ioService, tlsContext) {
 
     // DNS resolution.
     tcp::resolver resolver(ioService);
-    auto lookupResult = resolver.resolve({ servername, "https" });
-
-    // TCP hanshake.
-    boost::asio::connect(wsStream.next_layer().next_layer(), lookupResult);
-
+    resolutionResult = resolver.resolve({ servername, std::to_string(port) });
+    
     tlsContext.set_default_verify_paths();
     tlsContext.set_verify_mode(ssl::verify_peer | ssl::verify_fail_if_no_peer_cert);
-
-    // TLS handshake.
-    wsStream.next_layer().handshake(ssl::stream_base::client);
-
-    // WS handshake.
-    wsStream.handshake(servername, "/");
 }
 
 TLSWebSocket::~TLSWebSocket() {
-    if (wsStream.next_layer().next_layer().is_open()) this->close();
+    if (wsStream.lowest_layer().is_open()) this->shutdown();
 }
 
 void TLSWebSocket::sendMessage(const std::vector<uint8_t>& message) {
@@ -72,7 +63,17 @@ void TLSWebSocket::asyncSendMessage(const std::vector<uint8_t>& message, TLSWebS
     });
 }
 
-void TLSWebSocket::close(websocket::close_code reason) {
+void TLSWebSocket::handshake(const std::string& path, const std::unordered_map<std::string, std::string>& additionalHeaders) {
+    boost::asio::connect(wsStream.lowest_layer(), resolutionResult);
+    wsStream.next_layer().handshake(ssl::stream_base::client);
+    wsStream.handshake_ex(servername, path, [&additionalHeaders](websocket::request_type& request) {
+        for (const auto& header : additionalHeaders) {
+            request.set(header.first, header.second);
+        }
+    });
+}
+
+void TLSWebSocket::shutdown(websocket::close_code reason) {
     wsStream.close(reason);
 
     // WebSockets spec. requires us to read all messages until
