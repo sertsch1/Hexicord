@@ -6,9 +6,37 @@
 #include <vector>         // std::vector
 #include <unordered_map>  // std::unordered_map
 #include <functional>     // std::function
+#include <mutex>          // std::mutex, std::lock_guard
+#include <locale>         // std::tolower, std::locale
+
+/**
+ *  \file rest.hpp
+ *  \internal
+ *
+ *  Defines implementation-independent thread-safe interface for HTTP requests.
+ */
 
 namespace Hexicord { namespace REST {
-    using HeadersMap = std::unordered_map<std::string, std::string>;
+    namespace _detail {
+        std::string stringToLower(const std::string& input) {
+            std::string result;
+            result.reserve(input.size());
+
+            for (char ch : input) {
+                result.push_back(std::tolower(ch, std::locale("C")));
+            }
+            return result;
+        }
+
+        struct CaseInsensibleStringEqual {
+            bool operator()(const std::string& lhs, const std::string& rhs) const {
+                return stringToLower(lhs) == stringToLower(rhs);
+            }
+        };
+    }
+
+    /// Hash-map with case-insensible string keys.
+    using HeadersMap = std::unordered_map<std::string, std::string, std::hash<std::string>, _detail::CaseInsensibleStringEqual>;
 
     struct HTTPResponse {
         unsigned statusCode;
@@ -26,7 +54,7 @@ namespace Hexicord { namespace REST {
         HeadersMap headers;
     };
 
-    /// Basic requests factories.
+    /// \defgroup http_requests_factories ''Basic requests factories''.
     /// @{ 
 
     inline HTTPRequest Get(const std::string& path, const HeadersMap& additionalHeaders = {}) {
@@ -61,8 +89,6 @@ namespace Hexicord { namespace REST {
      *          StreamProvider::ErrorType    type to be used for error reporting in async callback.
      *          StreamProvider::Exception    type thrown on any error.
      *          StreamProvider::RequestType  raw request type.
-     *      Should define following constants:
-     *          StreamProvider::DefaultPort  unsigned short. Default port used for connection.
      *      Should define following static methods:
      *          StreamProvider::setMethod(RequestType&, const std::string&) const
      *              Set method for request.
@@ -82,14 +108,17 @@ namespace Hexicord { namespace REST {
      *          StreamProvider::closeConnection()
      *              Close connection.
      *          StreamProvider::isOpen() const
-     *              Should return true whatever connection is open and ready.
+     *              Should return true whatever socket is open. 
      */
     template<typename StreamProvider>
     class GenericHTTPConnection {
     public:
+        /**
+         *  Async request callback. Not used now because async requests is not implemented.
+         */
         using AsyncRequestCallback = std::function<void(HTTPResponse, typename StreamProvider::ErrorType)>;
         
-        /*  
+        /** 
          *  Prepare connection context.
          *
          *  \param servername   domain name or network address of target server.
@@ -108,23 +137,41 @@ namespace Hexicord { namespace REST {
 
         /**
          *  Open connection and prepare for handling requests.
+         *
+         *  This method is thread-safe.
          */
         void open() {
+            std::lock_guard<std::mutex> lock(connectionMutex);
             streamProvider.openConnection();
         }
 
         /**
          *  Close connection. Can be reopened using \ref open().
+         *
+         *  This method is thread-safe.
          */
         void close() {
+            std::lock_guard<std::mutex> lock(connectionMutex);
             streamProvider.closeConnection();
         }
 
+        /**
+         *  Whatever socket is open.
+         *
+         *  \warning Socket is one side of connection, it may be closed on other
+         *           side and this can't be detected without attempt to send request.
+         */
         bool isOpen() {
             return streamProvider.isOpen();
         }
-    
+   
+        /**
+         *  Perform HTTP request and read response.
+         *
+         *  This method is thread-safe.
+         */
         HTTPResponse request(const HTTPRequest& request) {
+            std::lock_guard<std::mutex> lock(connectionMutex);
             return streamProvider.request(this->prepareRequest(request));
         }
         
@@ -165,6 +212,8 @@ namespace Hexicord { namespace REST {
 
             return streamRequest;
         }
+
+        std::mutex connectionMutex;
     };
 
 }} // namespace Hexicord::REST

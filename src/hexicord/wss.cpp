@@ -21,10 +21,12 @@ TLSWebSocket::~TLSWebSocket() {
 }
 
 void TLSWebSocket::sendMessage(const std::vector<uint8_t>& message) {
+    std::lock_guard<std::mutex> lock(connectionMutex);
     wsStream.write(boost::asio::buffer(message.data(), message.size()));
 }
 
 std::vector<uint8_t> TLSWebSocket::readMessage() {
+    std::lock_guard<std::mutex> lock(connectionMutex);
     beast::flat_buffer buffer;
 
     wsStream.read(buffer);
@@ -64,6 +66,7 @@ void TLSWebSocket::asyncSendMessage(const std::vector<uint8_t>& message, TLSWebS
 }
 
 void TLSWebSocket::handshake(const std::string& path, const std::unordered_map<std::string, std::string>& additionalHeaders) {
+    std::lock_guard<std::mutex> lock(connectionMutex);
     boost::asio::connect(wsStream.lowest_layer(), resolutionResult);
     wsStream.next_layer().handshake(ssl::stream_base::client);
     wsStream.handshake_ex(servername, path, [&additionalHeaders](websocket::request_type& request) {
@@ -74,6 +77,7 @@ void TLSWebSocket::handshake(const std::string& path, const std::unordered_map<s
 }
 
 void TLSWebSocket::shutdown(websocket::close_code reason) {
+    std::lock_guard<std::mutex> lock(connectionMutex);
     wsStream.close(reason);
 
     // WebSockets spec. requires us to read all messages until

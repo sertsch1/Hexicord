@@ -10,6 +10,13 @@
 #include <beast/http/vector_body.hpp>       // beast::http::vector_body
 #include "hexicord/rest.hpp"                // Hexicord::REST::HTTPResponse
 
+/**
+ *  \file beast_rest.hpp
+ *  \internal
+ *
+ *  Implementation of HTTP for \ref GenericHTTPConnection.
+ */
+
 namespace Hexicord {
     class BeastHTTPBase {
     public:
