@@ -25,6 +25,8 @@ namespace Hexicord {
     namespace websocket = beast::websocket;
 
     /**
+     *  \internal
+     *
      *  High-level beast WebSockets wrapper. Provides basic I/O operations:
      *  read, send, async read, async write.
      */
@@ -38,23 +40,22 @@ namespace Hexicord {
         using AsyncSendCallback = std::function<void(TLSWebSocket&, beast::error_code)>;
 
         /**
-         *  Resolve remote endpoint, but don't handshake (use handshake() for it). 
+         *  \internal
          *
-         *  \throws beast::system_error on any error.
-         *
-         *  \param servername    network address or domain name.
+         *  Construct unconnected WebSocket. use handshake for connection.
          */
-        TLSWebSocket(IOService& ioService, const std::string& servername, unsigned short port = 443);
-
-        TLSWebSocket(const TLSWebSocket&) = delete;
-        TLSWebSocket(TLSWebSocket&&)      = default;
+        TLSWebSocket(IOService& ioService); 
 
         /**
+         *  \internal
+         *
          *  Calls shutdown().
          */
         ~TLSWebSocket();
 
         /**
+         *  \internal
+         *
          *  Send message and block until transmittion finished.
          *
          *  \throws beast::system_error on any error.
@@ -64,6 +65,8 @@ namespace Hexicord {
         void sendMessage(const std::vector<uint8_t>& message);
 
         /**
+         *  \internal
+         *
          *  Read message if any, blocks if there is no message.
          *
          *  \throws beast::system_error on any error.
@@ -73,6 +76,8 @@ namespace Hexicord {
         std::vector<uint8_t> readMessage();
 
         /**
+         *  \internal
+         *
          *  Asynchronously read message and call callback when done (or error occured).
          *
          *  \warning For now there is no way to cancel this operation.
@@ -85,6 +90,8 @@ namespace Hexicord {
         void asyncReadMessage(AsyncReadCallback callback);
 
         /**
+         *  \internal
+         *
          *  Asynchronusly send message and call callback when done (or error occured).
          *
          *  \warning For now there is no way to cancel this operation.
@@ -92,20 +99,24 @@ namespace Hexicord {
          *          in std::shared_ptr for this function to work correctly.
          *          Otherwise UB will occur.
          *
-         * This method is NOT thread-safe.
+         *  This method is NOT thread-safe.
          */
         void asyncSendMessage(const std::vector<uint8_t>& message, AsyncSendCallback callback);
 
         /**
+         *  \internal
+         *
          *  Perform TCP handshake, TLS handshake and WS handshake.
          *
          *  \throws beast::system_error on any error.
          *
          *  This method is thread-safe.
          */
-        void handshake(const std::string& path = "/", const std::unordered_map<std::string, std::string>& additionalHeaders = {});
+        void handshake(const std::string& servername, const std::string& path, unsigned short port = 443, const std::unordered_map<std::string, std::string>& additionalHeaders = {});
 
         /**
+         *  \internal
+         *
          *  Discard any remaining messages until close frame and teardown TCP connection.
          *  Error occured while when closing is ignored. TLSWebSocket instance is no longer
          *  usable after this call.
@@ -113,6 +124,10 @@ namespace Hexicord {
          *  This method is thread-safe.
          */
         void shutdown(websocket::close_code reason = websocket::close_code::normal);
+
+        bool isSocketOpen() const {
+            return wsStream.lowest_layer().is_open();
+        }
 
         ssl::context tlsContext;
         WSSStream wsStream;
