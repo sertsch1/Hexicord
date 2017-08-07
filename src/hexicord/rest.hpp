@@ -18,7 +18,7 @@
 
 namespace Hexicord { namespace REST {
     namespace _detail {
-        std::string stringToLower(const std::string& input) {
+        inline std::string stringToLower(const std::string& input) {
             std::string result;
             result.reserve(input.size());
 
@@ -35,9 +35,11 @@ namespace Hexicord { namespace REST {
         };
     }
 
+    /// \internal
     /// Hash-map with case-insensible string keys.
     using HeadersMap = std::unordered_map<std::string, std::string, std::hash<std::string>, _detail::CaseInsensibleStringEqual>;
 
+    /// \internal
     struct HTTPResponse {
         unsigned statusCode;
         
@@ -45,6 +47,7 @@ namespace Hexicord { namespace REST {
         std::vector<uint8_t> body;
     };
 
+    /// \internal
     struct HTTPRequest {
         std::string method;
         std::string path;
@@ -53,9 +56,6 @@ namespace Hexicord { namespace REST {
         std::vector<uint8_t> body;
         HeadersMap headers;
     };
-
-    /// \defgroup http_requests_factories ''Basic requests factories''.
-    /// @{ 
 
     inline HTTPRequest Get(const std::string& path, const HeadersMap& additionalHeaders = {}) {
         return { "GET", path, 11, {}, additionalHeaders }; 
@@ -77,9 +77,9 @@ namespace Hexicord { namespace REST {
         return { "DELETE", path, 11, body, additionalHeaders };
     }
 
-    /// @}
-
     /**
+     *  \internal
+     *
      *  Main class. Represents single transport-layer connection used for HTTP requests.
      *
      *  \tparam StreamProvider Implementation of underlaying connection.
@@ -114,11 +114,15 @@ namespace Hexicord { namespace REST {
     class GenericHTTPConnection {
     public:
         /**
+         *  \internal
+         *
          *  Async request callback. Not used now because async requests is not implemented.
          */
         using AsyncRequestCallback = std::function<void(HTTPResponse, typename StreamProvider::ErrorType)>;
         
         /** 
+         *  \internal
+         *
          *  Prepare connection context.
          *
          *  \param servername   domain name or network address of target server.
@@ -135,7 +139,14 @@ namespace Hexicord { namespace REST {
             if (streamProvider.isOpen()) streamProvider.closeConnection();
         }
 
+        GenericHTTPConnection(const GenericHTTPConnection&) = delete;
+        GenericHTTPConnection(GenericHTTPConnection&&) = default;
+        GenericHTTPConnection& operator=(const GenericHTTPConnection&) = delete;
+        GenericHTTPConnection& operator=(GenericHTTPConnection&&) = default;
+
         /**
+         *  \internal
+         *
          *  Open connection and prepare for handling requests.
          *
          *  This method is thread-safe.
@@ -146,6 +157,8 @@ namespace Hexicord { namespace REST {
         }
 
         /**
+         *  \internal
+         *
          *  Close connection. Can be reopened using \ref open().
          *
          *  This method is thread-safe.
@@ -155,7 +168,9 @@ namespace Hexicord { namespace REST {
             streamProvider.closeConnection();
         }
 
-        /**
+        /** 
+         *  \internal
+         *
          *  Whatever socket is open.
          *
          *  \warning Socket is one side of connection, it may be closed on other
@@ -166,6 +181,8 @@ namespace Hexicord { namespace REST {
         }
    
         /**
+         *  \internal
+         *
          *  Perform HTTP request and read response.
          *
          *  This method is thread-safe.

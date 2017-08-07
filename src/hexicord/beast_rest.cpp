@@ -1,5 +1,6 @@
 #include "hexicord/beast_rest.hpp"
 #include <boost/asio/ssl/rfc2818_verification.hpp>  // boost::asio::ssl::rfc2818_verification.hpp
+#include <boost/asio/connect.hpp>
 #include <beast/http/write.hpp>                     // beast::http::write
 #include <beast/http/read.hpp>                      // beast::http::read
 #include <beast/core/flat_buffer.hpp>               // beast::flat_buffer
