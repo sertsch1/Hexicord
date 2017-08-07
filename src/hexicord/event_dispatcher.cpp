@@ -2,45 +2,45 @@
 
 namespace Hexicord {
     const std::unordered_map<std::string, Event> EventDispatcher::stringToEnum {
-        { "READY",                          Event::READY                },
-        { "RESUMED",                        Event::RESUMED              },
-        { "CHANNEL_CREATE",                 Event::CHANNEL_CREATE       },
-        { "CHANNEL_UPDATE",                 Event::CHANNEL_UPDATE       },
-        { "CHANNEL_DELETE",                 Event::CHANNEL_DELETE       },
-        { "CHANNEL_PINS_CHANGE",            Event::CHANNEL_PINS_CHANGE  },
-        { "GUILD_CREATE",                   Event::GUILD_CREATE         },
-        { "GUILD_UPDATE",                   Event::GUILD_UPDATE         },
-        { "GUILD_DELETE",                   Event::GUILD_DELETE         },
-        { "GUILD_BAN_ADD",                  Event::GUILD_BAN_ADD        },
-        { "GUILD_BAN_REMOVE",               Event::GUILD_BAN_REMOVE     },
-        { "GUILD_EMOJIS_UPDATE",            Event::GUILD_EMOJIS_UPDATE  },
-        { "GUILD_INTEGRATIONS_UPDATE",      Event::GUILD_INTEGRATIONS_UPDATE },
-        { "GUILD_MEMBER_ADD",               Event::GUILD_MEMBER_ADD     },
-        { "GUILD_MEMBER_REMOVE",            Event::GUILD_MEMBER_REMOVE  },
-        { "GUILD_MEMBER_UPDATE",            Event::GUILD_MEMBER_UPDATE  },
-        { "GUILD_MEMBERS_CHUNK",            Event::GUILD_MEMBERS_CHUNK  },
-        { "GUILD_ROLE_CREATE",              Event::GUILD_ROLE_CREATE    },
-        { "GUILD_ROLE_UPDATE",              Event::GUILD_ROLE_UPDATE    },
-        { "GUILD_ROLE_DELETE",              Event::GUILD_ROLE_DELETE    },
-        { "MESSAGE_CREATE",                 Event::MESSAGE_CREATE       },
-        { "MESSAGE_UPDATE",                 Event::MESSAGE_UPDATE       },
-        { "MESSAGE_DELETE",                 Event::MESSAGE_DELETE       },
-        { "MESSAGE_DELETE_BULK",            Event::MESSAGE_DELETE_BULK  },
-        { "MESSAGE_REACTION_ADD",           Event::MESSAGE_REACTION_ADD },
-        { "MESSAGE_REACTION_REMOVE_ALL",    Event::MESSAGE_REACTION_REMOVE_ALL },
-        { "MESSAGE_PRESENSE_UPDATE",        Event::MESSAGE_PRESENSE_UPDATE },
-        { "TYPING_START",                   Event::TYPING_START         },
-        { "USER_UPDATE",                    Event::USER_UPDATE          },
-        { "VOICE_STATE_UPDATE",             Event::VOICE_STATE_UPDATE   },
-        { "VOICE_SERVER_UPDATE",            Event::VOICE_SERVER_UPDATE  },
-        { "WEBHOOKS_UPDATE",                Event::WEBHOOKS_UPDATE      }
+        { "READY",                          Event::Ready                },
+        { "RESUMED",                        Event::Resumed              },
+        { "CHANNEL_CREATE",                 Event::ChannelCreate        },
+        { "CHANNEL_UPDATE",                 Event::ChannelUpdate        },
+        { "CHANNEL_DELETE",                 Event::ChannelDelete        },
+        { "CHANNEL_PINS_CHANGE",            Event::ChannelPinsChange    },
+        { "GUILD_CREATE",                   Event::GuildCreate          },
+        { "GUILD_UPDATE",                   Event::GuildUpdate          },
+        { "GUILD_DELETE",                   Event::GuildDelete          },
+        { "GUILD_BAN_ADD",                  Event::GuildBanAdd          },
+        { "GUILD_BAN_REMOVE",               Event::GuildBanRemove       },
+        { "GUILD_EMOJIS_UPDATE",            Event::GuildEmojisUpdate    },
+        { "GUILD_INTEGRATIONS_UPDATE",      Event::GuildIntegrationsUpdate },
+        { "GUILD_MEMBER_ADD",               Event::GuildMemberAdd       },
+        { "GUILD_MEMBER_REMOVE",            Event::GuildMemberRemove    },
+        { "GUILD_MEMBER_UPDATE",            Event::GuildMemberUpdate    },
+        { "GUILD_MEMBERS_CHUNK",            Event::GuildMembersChunk    },
+        { "GUILD_ROLE_CREATE",              Event::GuildRoleCreate      },
+        { "GUILD_ROLE_UPDATE",              Event::GuildRoleUpdate      },
+        { "GUILD_ROLE_DELETE",              Event::GuildRoleDelete      },
+        { "MESSAGE_CREATE",                 Event::MessageDelete        },
+        { "MESSAGE_UPDATE",                 Event::MessageUpdate        },
+        { "MESSAGE_DELETE",                 Event::MessageDelete        },
+        { "MESSAGE_DELETE_BULK",            Event::MessageDeleteBulk    },
+        { "MESSAGE_REACTION_ADD",           Event::MessageReactionAdd   },
+        { "MESSAGE_REACTION_REMOVE_ALL",    Event::MessageReactionRemoveAll },
+        { "MESSAGE_PRESENSE_UPDATE",        Event::MessagePresenseUpdate },
+        { "TYPING_START",                   Event::TypingStart          },
+        { "USER_UPDATE",                    Event::UserUpdate           },
+        { "VOICE_STATE_UPDATE",             Event::VoiceStateUpdate     },
+        { "VOICE_SERVER_UPDATE",            Event::VoiceServerUpdate    },
+        { "WEBHOOKS_UPDATE",                Event::WebhooksUpdate       }
     };
 
     void EventDispatcher::addHandler(Event eventType, EventDispatcher::EventHandler handler) {
         handlers[eventType].push_back(handler);
     }
 
-    void EventDispatcher::addUnkownEventHandler(EventDispatcher::UnknownEventHandler handler) {
+    void EventDispatcher::addUnknownEventHandler(EventDispatcher::UnknownEventHandler handler) {
         unknownEventHandlers.push_back(handler);
     }
 
