@@ -56,23 +56,34 @@ else()
     message(WARNING "Using WERROR/WSTRICT with non-GCC like compiler is not supported. Ignoring.")
 endif()
 
-option(HEXICORD_COTIRE  "Use Cotire (compile time reducer)."    ON)
-if(HEXICORD_COTIRE)
-    include(${PROJECT_SOURCE_DIR}/cmake/cotire.cmake)
-else()
-    # Declare stub that does nothing.
-    function(cotire target)
-    endfunction()
-endif()
-
 #------------------------------------------------------------------------------
 # Documentation (Doxygen)
 
 find_package(Doxygen)
 option(HEXICORD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
 option(HEXICORD_IDOCS   "Generate documentation for internal classes." OFF)
-if(BUILD_DOCS)
-   include(cmake/doxygen.cmake)
+if(HEXICORD_DOCS)
+    if (NOT DOXYGEN_FOUND)
+        message(FATAL_ERROR "Doxygen is required to build documentation.")
+        # Don't have to put everything else in else branch because FATAL_ERROR aborts configuration.
+    endif()
+
+    if(HEXICORD_IDOCS)
+        set(_INTERNAL_DOCS "YES")
+    else()
+        set(_INTERNAL_DOCS "NO")
+    endif()
+
+    configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+
+    add_custom_target(doc
+                      COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
+                      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                      COMMENT "Generating HTML API documentation using Doxygen"
+                      VERBATIM
+                      )
+
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
 
 
@@ -149,8 +160,6 @@ endif()
 
 target_link_libraries(hexicord Beast Threads::Threads Boost::system)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
-
-cotire(hexicord)
 
 # XXX: Look into path relocation for headers.
 #install(FILES ${HEXICORD_HEADERS} DESTINATION include/)
