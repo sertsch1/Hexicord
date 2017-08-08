@@ -98,7 +98,7 @@ namespace Hexicord {
      *      });
      *
      *      client.connectToGateway(client.getGatewayUrlBot());
-     *      ios.run();
+     *      client.run();
      *  ```
      *
      *  ### Sharding (for bots)
@@ -137,10 +137,10 @@ namespace Hexicord {
      *
      *      // connect master shard
      *      if (pid != 0) {
-     *          client.gatewayToGateway(gatewayUrl, 0, shardsCount);
+     *          client.connectToGateway(gatewayUrl, 0, shardsCount);
      *      }
      *
-     *      ios.run();
+     *     client.run();
      *  ```
      */
     class Client {
@@ -293,6 +293,30 @@ namespace Hexicord {
          *  \sa \ref sendRestRequest
          */
         void sendGatewayMsg(int opCode, const nlohmann::json& payload = {}, const std::string& t = "");
+
+        /**
+         *  Run bot in 2 threads (threading is important, see below).
+         *
+         *  If you need more than 2 threads, you may execute ioService.run()
+         *  manually, it's just wrapper to hide requirement of two threads to
+         *  operate correctly.
+         *
+         *  \b Implementation details:
+         *
+         *  Actually this method exactly following:
+         *  ```cpp
+         *      std::thread second_thread([this]() { this->ioService.run(); });
+         *      ioService.run();
+         *      second_thread.join();
+         *  ```
+         *  but adding code to "forward" exceptions from second_thread.
+         *
+         *  This second thread is important to send heartbeats at right time when
+         *  main thread is blocked at read. Both threads can't be blocked by async_read
+         *  because of "strict ordering" - only one asyncRead can be queued/running
+         *  at same time.
+         */
+        void run();
 
         /**
          *  Can be changed if you need different API version but such changes

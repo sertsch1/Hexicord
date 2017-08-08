@@ -1,4 +1,5 @@
 #include "hexicord/client.hpp"
+#include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
@@ -207,6 +208,20 @@ namespace Hexicord {
         }
     }
 
+    void Client::run() {
+        std::exception_ptr eptr;
+        std::thread second_thread([this, &eptr]() { 
+            try {
+                this->ioService.run();
+            } catch (...) {
+                eptr = std::current_exception();
+            }
+        });
+        ioService.run();
+        second_thread.join();
+        if (eptr) std::rethrow_exception(eptr);
+    }
+
     std::string Client::domainFromUrl(const std::string& url) {
         enum State {
             ReadingSchema,
@@ -300,10 +315,8 @@ namespace Hexicord {
         });
     }
 
-    void Client::startGatewayHeartbeat() { // TODO: replace with thread since it doesn't works as I except.
-        return;
-        DEBUG_MSG("Resetting heartbeat timer...");
-        heartbeatTimer.cancel();
+    void Client::startGatewayHeartbeat() {
+        heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
         heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
             if (ec == boost::asio::error::operation_aborted) return;
             if (!heartbeat) return;
@@ -322,10 +335,8 @@ namespace Hexicord {
         });
     }
 
-    void Client::startRestKeepaliveTimer() { // TODO: replace with thread since it doesn't works as I except.
-        return;
-        DEBUG_MSG("Resetting keepalive timer...");
-        keepaliveTimer.cancel();
+    void Client::startRestKeepaliveTimer() {
+        keepaliveTimer.expires_from_now(boost::posix_time::seconds(10));
         keepaliveTimer.async_wait([this](const boost::system::error_code& ec) {
             if (ec == boost::asio::error::operation_aborted) return;
             if (!restKeepalive) return;
