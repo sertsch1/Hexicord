@@ -1,4 +1,5 @@
 #include "hexicord/event_dispatcher.hpp"
+#include <iostream>
 
 namespace Hexicord {
     const std::unordered_map<std::string, Event> EventDispatcher::stringToEnum {
@@ -22,13 +23,13 @@ namespace Hexicord {
         { "GUILD_ROLE_CREATE",              Event::GuildRoleCreate      },
         { "GUILD_ROLE_UPDATE",              Event::GuildRoleUpdate      },
         { "GUILD_ROLE_DELETE",              Event::GuildRoleDelete      },
-        { "MESSAGE_CREATE",                 Event::MessageDelete        },
+        { "MESSAGE_CREATE",                 Event::MessageCreate        },
         { "MESSAGE_UPDATE",                 Event::MessageUpdate        },
         { "MESSAGE_DELETE",                 Event::MessageDelete        },
         { "MESSAGE_DELETE_BULK",            Event::MessageDeleteBulk    },
         { "MESSAGE_REACTION_ADD",           Event::MessageReactionAdd   },
         { "MESSAGE_REACTION_REMOVE_ALL",    Event::MessageReactionRemoveAll },
-        { "MESSAGE_PRESENSE_UPDATE",        Event::MessagePresenseUpdate },
+        { "PRESENSE_UPDATE",                Event::PresenseUpdate       },
         { "TYPING_START",                   Event::TypingStart          },
         { "USER_UPDATE",                    Event::UserUpdate           },
         { "VOICE_STATE_UPDATE",             Event::VoiceStateUpdate     },
