@@ -4,7 +4,7 @@
 
 #ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
     #include <iostream>
-    #define DEBUG_MSG(msg) do { std::cerr << (msg) << '\n'; } while (false)
+    #define DEBUG_MSG(msg) do { std::cerr << __FILE__ << ":" << __LINE__ << " " << (msg) << '\n'; } while (false)
 #else
     #define DEBUG_MSG(msg)
 #endif
@@ -15,7 +15,7 @@ namespace Hexicord {
         , gatewayConnection(new TLSWebSocket(ioService))
         , token(token)
         , ioService(ioService)
-        , keepaliveTimer(ioService, boost::posix_time::seconds(5))
+        , keepaliveTimer(ioService)
         , heartbeatTimer(ioService) {
 
         // It's strange but Discord API requires "DiscordBot" user-agent for any connections
@@ -129,7 +129,6 @@ namespace Hexicord {
         });
 
         lastUsedGatewayUrl = gatewayUrl;
-        DEBUG_MSG("Starting gateway polling...");
         startGatewayPolling();
     }
 
@@ -159,8 +158,10 @@ namespace Hexicord {
         request.path    = restBasePath + endpoint;
         request.version = 11;
         if (payload != nullptr) {
+            request.headers.insert({ "Content-Type", "application/json" });
             request.body = jsonToVector(payload);
         }
+
 
         REST::HTTPResponse response;
         try {
@@ -182,7 +183,9 @@ namespace Hexicord {
 
         if (response.statusCode != 200) {
             DEBUG_MSG("Got non-200 HTTP status code.");
-            throw APIError(message["message"].get<std::string>(), message["code"], response.statusCode);
+            int code = -1;
+            if (message.find("code") != message.end()) code = message["code"];
+            throw APIError(message["message"].get<std::string>(), code, response.statusCode);
         }
 
         return message;
