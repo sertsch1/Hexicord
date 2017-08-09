@@ -40,6 +40,12 @@ namespace Hexicord {
         WebhooksUpdate,
     };
 
+    struct EventHash {
+        inline std::size_t operator()(Event e) const noexcept {
+            return static_cast<std::size_t>(e);
+        }
+    };
+
     class EventDispatcher {
     public:
         using EventHandler        = std::function<void(const nlohmann::json&)>;
@@ -52,7 +58,7 @@ namespace Hexicord {
     private:
         static const std::unordered_map<std::string, Event> stringToEnum;
 
-        std::unordered_map<Event, std::vector<EventHandler> > handlers {
+        std::unordered_map<Event, std::vector<EventHandler>, EventHash> handlers {
             { Event::Ready, {} },
             { Event::Resumed, {} },
             { Event::ChannelCreate, {} },
