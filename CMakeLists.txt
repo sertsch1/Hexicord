@@ -132,12 +132,6 @@ find_package(Threads REQUIRED)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/lib/beast)
 include_directories(${PROJECT_SOURCE_DIR}/lib/beast/include)
 
-
-#------------------------------------------------------------------------------
-# nlohmann/json
-
-include_directories(${PROJECT_SOURCE_DIR}/lib)
-
 #------------------------------------------------------------------------------
 # Library
 
@@ -170,3 +164,4 @@ install(TARGETS hexicord
 if(HEXICORD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 endif()
+
