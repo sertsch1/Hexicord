@@ -157,23 +157,28 @@ namespace Hexicord {
         request.method  = method;
         request.path    = restBasePath + endpoint;
         request.version = 11;
-        if (payload != nullptr) {
+        if (!payload.empty()) {
             request.headers.insert({ "Content-Type", "application/json" });
             request.body = jsonToVector(payload);
         }
+        request.headers.insert({ "Accept", "application/json" });
 
-
+        activeRestRequest = true;
         REST::HTTPResponse response;
         try {
             DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint);
             response = restConnection->request(request);
         } catch (beast::system_error& excp) {
+            activeRestRequest = false;
             if (excp.code() != beast::http::error::end_of_stream) throw;
 
             DEBUG_MSG("HTTP Connection closed by remote. Reopenning and retrying.");
             restConnection->close();
+
+            REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
             // we should not reuse socket.
-            restConnection = std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> >(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+            restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+            restConnection->connectionHeaders = std::move(prevHeaders);
             restConnection->open();
             
             response = restConnection->request(request);
@@ -345,12 +350,16 @@ namespace Hexicord {
             if (!restKeepalive) return;
 
             try {
-                restConnection->request({ "HEAD", "/", 11, {}, {} });
+                if (!activeRestRequest) {
+                    restConnection->request({ "HEAD", "/", 11, {}, {} });
+                }
             } catch (beast::system_error& excp) {
                 if (excp.code() == beast::http::error::end_of_stream) {
                     restConnection->close();
                     // we should not reuse socket.
-                    restConnection = std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> >(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+                    REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
+                    restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+                    restConnection->connectionHeaders = std::move(prevHeaders);
                     restConnection->open();
                 } else {
                     throw;

@@ -268,7 +268,7 @@ namespace Hexicord {
          *                   but following used by Discord API: "POST", "GET",
          *                   "PATCH", "PUT", "DELETE".
          *  \param endpoint  endpoint URL relative to base URL (including leading slash).
-         *  \param payload   JSON payload, pass nullptr (default) if none.
+         *  \param payload   JSON payload, pass empty object (default) if none.
          *
          *  \throws APIError on API error.
          *  \throws beast::system_error on connection problem.
@@ -276,7 +276,7 @@ namespace Hexicord {
          *  \sa \ref sendGatewayMsg
          */
         nlohmann::json sendRestRequest(const std::string& method, const std::string& endpoint,
-                                       const nlohmann::json& payload = nullptr);
+                                       const nlohmann::json& payload = {});
 
         /**
          *  Send raw gateway message.
@@ -404,6 +404,10 @@ private:
         unsigned heartbeatIntervalMs;
         bool heartbeat = true, restKeepalive = true, gatewayPoll = true;
         int unansweredHeartbeats = 0;
+
+        // Set whatever there is sendRestRequest executing restConnection->request. 
+        // Used to prevent attempts to send keepalive requests during this.
+        bool activeRestRequest = false;
 
         std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> > restConnection;
         std::unique_ptr<TLSWebSocket> gatewayConnection;
