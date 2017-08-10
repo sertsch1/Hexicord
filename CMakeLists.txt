@@ -13,6 +13,7 @@ set(HEXICORD_VERSION 0.0.0)
 
 project(Hexicord VERSION ${HEXICORD_VERSION})
 
+
 #------------------------------------------------------------------------------
 # Global building configuration (C++ standard, defines, warning flags, cotire).
 
@@ -56,22 +57,16 @@ else()
     message(WARNING "Using WERROR/WSTRICT with non-GCC like compiler is not supported. Ignoring.")
 endif()
 
+
 #------------------------------------------------------------------------------
 # Documentation (Doxygen)
 
 find_package(Doxygen)
 option(HEXICORD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
-option(HEXICORD_IDOCS   "Generate documentation for internal classes." OFF)
 if(HEXICORD_DOCS)
     if (NOT DOXYGEN_FOUND)
         message(FATAL_ERROR "Doxygen is required to build documentation.")
         # Don't have to put everything else in else branch because FATAL_ERROR aborts configuration.
-    endif()
-
-    if(HEXICORD_IDOCS)
-        set(_INTERNAL_DOCS "YES")
-    else()
-        set(_INTERNAL_DOCS "NO")
     endif()
 
     configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
@@ -88,26 +83,14 @@ endif()
 
 
 #------------------------------------------------------------------------------
-# Boost
+# External dependencies
 
-set(Boost_USE_STATIC_LIBS    ON)
-set(Boost_USE_STATIC_RUNTIME ON)
+option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
+option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
+option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 
 find_package(Boost REQUIRED COMPONENTS system)
-link_directories(${Boost_LIBRARY_DIRS})
-include_directories(${Boost_INCLIDE_DIRS})
-
-if(MINGW)
-    link_libraries(ws2_32 mswsock)
-endif()
-
-
-#------------------------------------------------------------------------------
-# OpenSSL
-
 find_package(OpenSSL REQUIRED)
-link_directories(${OpenSSL_LIBRARY_DIRS})
-include_directories(${OpenSSL_INCLUDE_DIRS})
 
 
 #------------------------------------------------------------------------------
@@ -117,42 +100,27 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-
-#------------------------------------------------------------------------------
-# Beast
-
-#set(Beast_BUILD_EXAMPLES OFF)
-#set(Beast_BUILD_TESTS    OFF)
-
-# Doesn't required actually. All dependencies of beast handled by this
-# CMakeLists.txt. Also inclusion of beast's CMakeLists forces us to build
-# tests and examples (painful and slow due to high memory usage of compiler 
-# when parsing dense templates (up to 700 MiB)). set's above seems to be 
-# ignored.
-#add_subdirectory(${PROJECT_SOURCE_DIR}/lib/beast)
-include_directories(${PROJECT_SOURCE_DIR}/lib/beast/include)
-
 #------------------------------------------------------------------------------
 # Library
 
-option(STATIC_HEXICORD   "Build static library." ON )
-option(SHARED_HEXICORD   "Build shared library." OFF)
+option(HEXICORD_STATIC   "Build static library." ON )
+option(HEXICORD_SHARED   "Build shared library." OFF)
 option(HEXICORD_EXAMPLES "Build examples."       OFF)
 
 file(GLOB_RECURSE HEXICORD_HEADERS ${PROJECT_SOURCE_DIR}/src/*.hpp)
 file(GLOB_RECURSE HEXICORD_SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
-include_directories(hexicord ${PROJECT_SOURCE_DIR}/src)
-
-if(STATIC_HEXICORD)
+if(HEXICORD_STATIC)
     add_library(hexicord STATIC ${HEXICORD_HEADERS} ${HEXICORD_SOURCES})
 endif()
 
-if(SHARED_HEXICORD)
+if(HEXICORD_SHARED)
     add_library(hexicord SHARED ${HEXICORD_HEADERS} ${HEXICORD_SOURCES})
 endif()
 
-target_link_libraries(hexicord Beast Threads::Threads Boost::system)
+target_link_libraries(hexicord Threads::Threads Boost::system OpenSSL::SSL OpenSSL::Crypto)
+target_include_directories(hexicord PRIVATE ${PROJECT_SOURCE_DIR}/lib/beast/include ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(hexicord INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include ${PROJECT_SOURCE_DIR}/src)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
 # XXX: Look into path relocation for headers.

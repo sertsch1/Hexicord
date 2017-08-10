@@ -1,4 +1,4 @@
-#include "hexicord/wss.hpp"
+#include <hexicord/wss.hpp>
 #include <beast/core/drain_buffer.hpp>
 #include <boost/asio/connect.hpp>
 

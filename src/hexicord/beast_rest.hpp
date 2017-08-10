@@ -8,7 +8,7 @@
 #include <boost/asio/ssl/context.hpp>       // boost::asio::ssl::context
 #include <beast/core/error.hpp>             // beast::system_error, beast::error_code
 #include <beast/http/vector_body.hpp>       // beast::http::vector_body
-#include "hexicord/rest.hpp"                // Hexicord::REST::HTTPResponse
+#include <hexicord/rest.hpp>                // Hexicord::REST::HTTPResponse
 
 /**
  *  \file beast_rest.hpp

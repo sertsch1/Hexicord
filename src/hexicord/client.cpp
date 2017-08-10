@@ -1,4 +1,4 @@
-#include "hexicord/client.hpp"
+#include <hexicord/client.hpp>
 #include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
 

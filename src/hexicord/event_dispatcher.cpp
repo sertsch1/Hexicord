@@ -1,4 +1,4 @@
-#include "hexicord/event_dispatcher.hpp"
+#include <hexicord/event_dispatcher.hpp>
 #include <iostream>
 
 namespace Hexicord {
