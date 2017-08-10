@@ -39,6 +39,10 @@ namespace Hexicord {
         inline static void setHeader(RequestType& request, const std::string& key, const std::string& value) {
             request.set(key, value);
         }
+
+        inline static void setBody(RequestType& request, const std::vector<uint8_t>& body) {
+            request.body = body;
+        }
     };
 
     /// Satisfies requirements of \ref StreamProvider.

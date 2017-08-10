@@ -90,14 +90,16 @@ namespace Hexicord { namespace REST {
      *          StreamProvider::Exception    type thrown on any error.
      *          StreamProvider::RequestType  raw request type.
      *      Should define following static methods:
-     *          StreamProvider::setMethod(RequestType&, const std::string&) const
+     *          StreamProvider::setMethod(RequestType&, const std::string&)
      *              Set method for request.
-     *          StreamProvider::setPath(RequestType&, const std::string&) const 
+     *          StreamProvider::setPath(RequestType&, const std::string&)
      *              Set request path for request.
-     *          StreamProvider::setVersion(RequestType&, const std::string&) const
+     *          StreamProvider::setVersion(RequestType&, const std::string&)
      *              Set HTTP version for request.
-     *          StreamProvider::setHeader(RequestType&, const std::string&, const std::string&) const 
+     *          StreamProvider::setHeader(RequestType&, const std::string&, const std::string&)
      *              Set header for request.
+     *          StreamProvider::setBody(RequestType&, const std::vector<uint8_t>&)
+     *              Set body for request.
      *      Should define following non-static methods:
      *          StreamProvider::request(RequestType)
      *              Perform sync request. Should return HTTPResponse object.
@@ -225,6 +227,10 @@ namespace Hexicord { namespace REST {
             // Set per-request
             for (const auto& header : request.headers) {
                 StreamProvider::setHeader(streamRequest, header.first, header.second);
+            }
+
+            if (!request.body.empty()) {
+                StreamProvider::setBody(streamRequest, request.body);
             }
 
             return streamRequest;
