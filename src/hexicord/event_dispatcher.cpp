@@ -29,7 +29,7 @@ namespace Hexicord {
         { "MESSAGE_DELETE_BULK",            Event::MessageDeleteBulk    },
         { "MESSAGE_REACTION_ADD",           Event::MessageReactionAdd   },
         { "MESSAGE_REACTION_REMOVE_ALL",    Event::MessageReactionRemoveAll },
-        { "PRESENSE_UPDATE",                Event::PresenseUpdate       },
+        { "PRESENCE_UPDATE",                Event::PresenceUpdate       },
         { "TYPING_START",                   Event::TypingStart          },
         { "USER_UPDATE",                    Event::UserUpdate           },
         { "VOICE_STATE_UPDATE",             Event::VoiceStateUpdate     },
