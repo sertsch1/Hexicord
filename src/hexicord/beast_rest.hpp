@@ -4,6 +4,7 @@
 #include <string>                           // std::string
 #include <boost/asio/io_service.hpp>        // boost::asio::io_service
 #include <boost/asio/ip/tcp.hpp>            // boost::asio::ip::tcp::socket, boost::asio::ip::tcp::resolver
+#include <boost/asio/ssl.hpp>               // boost::asio::ssl
 #include <boost/asio/ssl/stream.hpp>        // boost::asio::ssl::stream
 #include <boost/asio/ssl/context.hpp>       // boost::asio::ssl::context
 #include <beast/core/error.hpp>             // beast::system_error, beast::error_code
