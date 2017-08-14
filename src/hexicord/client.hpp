@@ -20,9 +20,15 @@ namespace Hexicord {
      */
     struct APIError : public std::logic_error {
         APIError(const std::string& message, int apiCode = -1, int httpCode = -1) 
-            : std::logic_error(message)
+            // Build message in format "API error: {message} (apiCode={apiCode}, httpCode={httpCode})"
+            : std::logic_error(message + " (apiCode=" + std::to_string(apiCode) + ", httpCode=" + std::to_string(httpCode) + ")")
             , apiCode(apiCode)
             , httpCode(httpCode) {}
+
+        /**
+         *  Contains error message as sent by API.
+         */
+        const std::string message;
 
         /**
          *  Contains API error code and HTTP status code.
@@ -240,9 +246,6 @@ namespace Hexicord {
                                                                          { "since", nullptr },
                                                                          { "afk", false }});
 
-        // REST methods go here.
-        
-
         /**
          *  Send Close event and disconnect.
          *
@@ -318,10 +321,166 @@ namespace Hexicord {
          */
         void run();
 
+        /// \defgroup REST helpers.
+        /// Functions for easier REST requests to common endpoints.
+        /// @{
+        
+        /**
+         *  Get a channel by ID. Returns a guild channel or dm channel object.
+         *
+         *  \throws APIError on API error (invalid channel).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getChannel(uint64_t channelId);
+
+        /**
+         *  Update a channels settings.
+         *
+         *  Requires the MANAGE_CHANNELS permission for the guild.
+         *  Fires ChannelUpdate event.
+         *
+         *  \param name      2-100 character channel name.
+         *  \param position  The position of the channel in the left-hand listing.
+         *  \param topic     0-1024 character channel topic (Text channel only).
+         *  \param bitrate   The bitrate (in bits) for voice channel; 8000 to 96000 
+         *                   (to 128000 for VIP servers).
+         *  \param userLimit The user limit for voice channels; 0-99, 0 means no limit.
+         *
+         *  \throws APIError on API error (invalid channel ID, missing permissions).
+         *  \throws std::invalid_argument if no arguments other than channelId passed,
+         *          also thrown when both bitrate and topic passed.
+         *  \throws std::out_of_range if arguments out of range.
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Guild channel object.
+         */
+        nlohmann::json modifyChannel(uint64_t channelId,
+                                     boost::optional<std::string> name = boost::none,
+                                     boost::optional<int> position = boost::none,
+                                     boost::optional<std::string> topic = boost::none,
+                                     boost::optional<unsigned> bitrate = boost::none,
+                                     boost::optional<unsigned short> usersLimit = boost::none);
+
+        /**
+         *  Delete a guild channel or close DM.
+         *
+         *  Requires the MANAGE_CHANNELS permission for guild.
+         *  Fires ChannelDelete event.
+         *
+         *  \throws APIError on API error (invalid channel ID, missing permissions).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Channel object.
+         */
+        nlohmann::json deleteChannel(uint64_t channelId);
+
+        enum GetMsgMode {
+            /// Get messages **around** start ID.
+            Around,
+            /// Get messages **before** start ID.
+            Before,
+            /// Get messages **after** start ID.
+            After
+        };
+
+        /**
+         *  Get messages from channel.
+         *
+         *  Requires READ_MESSAGES permission if operating on guild channel.
+         *
+         *  \param startMessagesId  Return messages around/before/after (depending on mode) this ID
+         *  \param mode             See \ref GetMsgMode. Default is After.
+         *  \param limit            Max number of messages to return (1-100). Default is 50.
+         *
+         *  \throws APIError on API error (invalid ID, missing permissions).
+         *  \throws std::out_of_range if limit is bigger than 100 or equals to 0.
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Array of message objects.
+         */
+        nlohmann::json getChannelMessages(uint64_t channelId, uint64_t startMessageId,
+                                          GetMsgMode mode = After, unsigned short limit = 50);
+
+        /**
+         *  Returns a specific message in the channel.
+         *
+         *  Requires READ_MESSAGES_HISTORY permission if operating on guild channel.
+         *
+         *  \throws APIError on API error (invalid ID, missing permission).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Message object.
+         */
+        nlohmann::json getChannelMessage(uint64_t channelId, uint64_t messageId);
+
+        /**
+         *  Post a message to a guild text or DM channel. 
+         *
+         *  Requires SEND_MESSAGE permission if operating on guild channel.
+         *  Fires MessageCreate event.
+         *
+         *  \param text   The message text content (up to 2000 characters).
+         *  \param tts    Set whatever this is TTS message. Default is false.
+         *  \param nonce  Nonce that can be used for optimistic message sending. Default is none.
+         *
+         *  \throws APIError on API error (missing permission, invalid ID).
+         *  \throws std::out_of_range if text is bigger than 2000 characters.
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Message object that represents sent message.
+         */
+        nlohmann::json sendMessage(uint64_t channelId, const std::string& text, bool tts = false,
+                                  boost::optional<uint64_t> nonce = boost::none);
+
+        /**
+         *  Edit a previously sent message. You can only edit messages that have
+         *  been sent by the current user.
+         *
+         *  Fires MessageUpdate event.
+         *
+         *  \param text     New text.
+         *
+         *  \throws APIError on API error (editing other user's messages, invalid ID).
+         *  \throws std::out_of_range if text is bigger than 2000 characters.
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Message object.
+         */
+        nlohmann::json editMessage(uint64_t channelId, uint64_t messageId, const std::string& text);
+
+        /**
+         *  Delete a message. If operating on a guild channel and trying to
+         *  delete a message that was not sent by the current user,
+         *  requires the 'MANAGE_MESSAGES' permission.
+         *
+         *  Fires MessageDelete event.
+         *
+         *  \throws APIError on API error (missing permission, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        void deleteMessage(uint64_t channelId, uint64_t messageId);
+
+        /**
+         *  Delete multiple messages in a single request. This endpoint can 
+         *  only be used on guild channels and requires
+         *  the 'MANAGE_MESSAGES' permission.
+         *
+         *  Fires mulitply MessageDelete event.
+         *
+         *  \warning This method will not delete messages older than 2 weeks,
+         *  and will fail if any message provided is older than that. 
+         *
+         *  \throws APIError on API error (missing permission, invalid ID, older than 2 weeks).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
+
+        /// @}
+
         /**
          *  Can be changed if you need different API version but such changes
          *  should be avoided unless really necessary since it can affect
-         *  behavior of hardcoded methods.
+         *  behavior of REST helpers.
          *
          *  \sa \ref sendRestRequest \ref gatewayPathSuffix
          */
