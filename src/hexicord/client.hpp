@@ -274,7 +274,7 @@ namespace Hexicord {
          *  \param payload   JSON payload, pass empty object (default) if none.
          *
          *  \throws APIError on API error.
-         *  \throws beast::system_error on connection problem.
+         *  \throws boost::system::system_error on connection problem.
          *
          *  \sa \ref sendGatewayMsg
          */

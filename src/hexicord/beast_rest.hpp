@@ -7,8 +7,8 @@
 #include <boost/asio/ssl.hpp>               // boost::asio::ssl
 #include <boost/asio/ssl/stream.hpp>        // boost::asio::ssl::stream
 #include <boost/asio/ssl/context.hpp>       // boost::asio::ssl::context
-#include <beast/core/error.hpp>             // beast::system_error, beast::error_code
-#include <beast/http/vector_body.hpp>       // beast::http::vector_body
+#include <boost/beast/core/error.hpp>             // boost::system::system_error, boost::system::error_code
+#include <boost/beast/http/vector_body.hpp>       // boost::beast::http::vector_body
 #include <hexicord/rest.hpp>                // Hexicord::REST::HTTPResponse
 
 /**
@@ -21,9 +21,9 @@
 namespace Hexicord {
     class BeastHTTPBase {
     public:
-        using ErrorType   = beast::error_code;
-        using Exception   = beast::system_error;
-        using RequestType = beast::http::request<beast::http::vector_body<uint8_t> >;
+        using ErrorType   = boost::system::error_code;
+        using Exception   = boost::system::system_error;
+        using RequestType = boost::beast::http::request<boost::beast::http::vector_body<uint8_t> >;
 
         inline static void setMethod(RequestType& request, const std::string& method) {
             request.method_string(method);

@@ -1,7 +1,6 @@
 #include <hexicord/wss.hpp>
-#include <beast/core/drain_buffer.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
 #include <boost/asio/connect.hpp>
-
 
 namespace Hexicord {
 
@@ -14,7 +13,11 @@ namespace Hexicord {
     }
 
     TLSWebSocket::~TLSWebSocket() {
-        if (wsStream.lowest_layer().is_open()) this->shutdown();
+        try {
+            if (wsStream.lowest_layer().is_open()) this->shutdown();
+        } catch (...) {
+            // it's a destructor, we should not allow any exceptions.
+        }
     }
     
     void TLSWebSocket::sendMessage(const std::vector<uint8_t>& message) {
@@ -24,7 +27,7 @@ namespace Hexicord {
     
     std::vector<uint8_t> TLSWebSocket::readMessage() {
         std::lock_guard<std::mutex> lock(connectionMutex);
-        beast::flat_buffer buffer;
+        boost::beast::flat_buffer buffer;
     
         wsStream.read(buffer);
     
@@ -35,16 +38,14 @@ namespace Hexicord {
     }
 
     void TLSWebSocket::asyncReadMessage(TLSWebSocket::AsyncReadCallback callback) {
-        std::shared_ptr<beast::flat_buffer> buffer(new beast::flat_buffer);
+        std::shared_ptr<boost::beast::flat_buffer> buffer(new boost::beast::flat_buffer);
 
-        wsStream.async_read(*buffer, [this, buffer, callback](beast::error_code ec) {
-            // buffer captured by value into lambda. 
+        wsStream.async_read(*buffer, [this, buffer, callback](boost::system::error_code ec, unsigned long length) {
+            // buffer captured by value into lambda.
             // so they will exist here and hold ownership.
         
             auto bufferData = boost::asio::buffer_cast<const uint8_t*>(*buffer->data().begin());
-            auto bufferSize = boost::asio::buffer_size(*buffer->data().begin());
-
-            std::vector<uint8_t> vectorBuffer(bufferData, bufferData + bufferSize);
+            std::vector<uint8_t> vectorBuffer(bufferData, bufferData + length);
 
             callback(*this, vectorBuffer, ec);
 
@@ -54,7 +55,7 @@ namespace Hexicord {
     }
 
     void TLSWebSocket::asyncSendMessage(const std::vector<uint8_t>& message, TLSWebSocket::AsyncSendCallback callback) {
-        wsStream.async_write(boost::asio::buffer(message.data(), message.size()), [this, callback] (beast::error_code ec) {
+        wsStream.async_write(boost::asio::buffer(message.data(), message.size()), [this, callback] (boost::system::error_code ec) {
             callback(*this, ec);
         });
     }
@@ -76,14 +77,11 @@ namespace Hexicord {
 
     void TLSWebSocket::shutdown(websocket::close_code reason) {
         std::lock_guard<std::mutex> lock(connectionMutex);
-        wsStream.close(reason);
 
-        // WebSockets spec. requires us to read all messages until
-        // close frame.
-        beast::drain_buffer drain;
-        beast::error_code ec;
-        while (!ec) {
-            wsStream.read(drain, ec);
+        boost::system::error_code ec;
+        wsStream.close(reason, ec);
+        if (ec != boost::asio::ssl::error::stream_truncated) {
+            throw boost::system::system_error(ec);
         }
 
         wsStream.next_layer().shutdown(/* ignored */ ec);

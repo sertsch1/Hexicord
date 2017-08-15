@@ -3,9 +3,9 @@
 #include <boost/asio/ssl/error.hpp>                 // boost::asio::ssl::error
 #include <boost/asio/ssl/rfc2818_verification.hpp>  // boost::asio::ssl::rfc2818_verification.hpp
 #include <boost/asio/connect.hpp>
-#include <beast/http/write.hpp>                     // beast::http::write
-#include <beast/http/read.hpp>                      // beast::http::read
-#include <beast/core/flat_buffer.hpp>               // beast::flat_buffer
+#include <boost/beast/http/write.hpp>                     // boost::beast::http::write
+#include <boost/beast/http/read.hpp>                      // boost::beast::http::read
+#include <boost/beast/core/flat_buffer.hpp>               // boost::beast::flat_buffer
 
 namespace Hexicord {
     namespace ssl = boost::asio::ssl;
@@ -26,16 +26,16 @@ namespace Hexicord {
     }
 
     REST::HTTPResponse BeastHTTPS::request(BeastHTTPS::RequestType requestType) {
-        beast::error_code ec;
+        boost::system::error_code ec;
 
         requestType.prepare_payload();
         alive = false;
-        beast::http::write(stream, requestType, ec);
-        if (ec && ec != beast::http::error::end_of_stream) throw beast::system_error(ec);
+        boost::beast::http::write(stream, requestType, ec);
+        if (ec && ec != boost::beast::http::error::end_of_stream) throw boost::system::system_error(ec);
 
-        beast::http::response<beast::http::vector_body<uint8_t> > response;
-        beast::flat_buffer buffer;
-        beast::http::read(stream, buffer, response);
+        boost::beast::http::response<boost::beast::http::vector_body<uint8_t> > response;
+        boost::beast::flat_buffer buffer;
+        boost::beast::http::read(stream, buffer, response);
 
         REST::HTTPResponse responseStruct;
         responseStruct.statusCode = response.result_int();
@@ -60,10 +60,10 @@ namespace Hexicord {
     }
 
     void BeastHTTPS::closeConnection() {
-        beast::error_code ec;
+        boost::system::error_code ec;
         stream.shutdown(ec);
         if (ec && ec != boost::asio::error::eof && ec != boost::asio::ssl::error::stream_truncated) {
-            throw beast::system_error(ec);
+            throw boost::system::system_error(ec);
         }
         stream.next_layer().close();
         alive = false;

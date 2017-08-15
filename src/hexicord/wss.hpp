@@ -5,9 +5,9 @@
 #include <vector>                       // std::vector
 #include <memory>                       // std::enable_shared_from_this
 #include <mutex>                        // std::mutex, std::lock_guard
-#include <beast/core/error.hpp>         // beast::error_code, beast::system_error 
-#include <beast/websocket/stream.hpp>   // websocket::stream
-#include <beast/websocket/ssl.hpp>      // required to use ssl::stream beyond websocket
+#include <boost/beast/core/error.hpp>         // boost::system::error_code, boost::system::system_error 
+#include <boost/beast/websocket/stream.hpp>   // websocket::stream
+#include <boost/beast/websocket/ssl.hpp>      // required to use ssl::stream beyond websocket
 #include <boost/asio/ip/tcp.hpp>        // tcp::socket, tcp::resolver::iterator 
 #include <boost/asio/io_service.hpp>    // asio::io_service
 #include <boost/asio/ssl/context.hpp>   // ssl::context
@@ -22,7 +22,7 @@
 
 namespace Hexicord {
     namespace ssl       = boost::asio::ssl;
-    namespace websocket = beast::websocket;
+    namespace websocket = boost::beast::websocket;
 
     /**
      *  \internal
@@ -36,8 +36,8 @@ namespace Hexicord {
         using IOService = boost::asio::io_service;
         using tcp = boost::asio::ip::tcp;
     public:
-        using AsyncReadCallback = std::function<void(TLSWebSocket&, const std::vector<uint8_t>&, beast::error_code)>;
-        using AsyncSendCallback = std::function<void(TLSWebSocket&, beast::error_code)>;
+        using AsyncReadCallback = std::function<void(TLSWebSocket&, const std::vector<uint8_t>&, boost::system::error_code)>;
+        using AsyncSendCallback = std::function<void(TLSWebSocket&, boost::system::error_code)>;
 
         /**
          *  \internal
@@ -58,7 +58,7 @@ namespace Hexicord {
          *
          *  Send message and block until transmittion finished.
          *
-         *  \throws beast::system_error on any error.
+         *  \throws boost::system::system_error on any error.
          *
          *  This method is thread-safe.
          */
@@ -69,7 +69,7 @@ namespace Hexicord {
          *
          *  Read message if any, blocks if there is no message.
          *
-         *  \throws beast::system_error on any error.
+         *  \throws boost::system::system_error on any error.
          *
          *  This method is thread-safe.
          */
@@ -108,7 +108,7 @@ namespace Hexicord {
          *
          *  Perform TCP handshake, TLS handshake and WS handshake.
          *
-         *  \throws beast::system_error on any error.
+         *  \throws boost::system::system_error on any error.
          *
          *  This method is thread-safe.
          */

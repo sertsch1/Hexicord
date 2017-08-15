@@ -168,9 +168,9 @@ namespace Hexicord {
         try {
             DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint);
             response = restConnection->request(request);
-        } catch (beast::system_error& excp) {
+        } catch (boost::system::system_error& excp) {
             activeRestRequest = false;
-            if (excp.code() != beast::http::error::end_of_stream) throw;
+            if (excp.code() != boost::beast::http::error::end_of_stream) throw;
 
             DEBUG_MSG("HTTP Connection closed by remote. Reopenning and retrying.");
             restConnection->close();
@@ -221,7 +221,7 @@ namespace Hexicord {
         
         try {
             gatewayConnection->sendMessage(jsonToVector(message));
-        } catch (beast::system_error& excp) {
+        } catch (boost::system::system_error& excp) {
             if (excp.code() == boost::asio::error::broken_pipe) { // unexpected disconnect
                 disconnectFromGateway();
                 resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
@@ -426,7 +426,7 @@ namespace Hexicord {
     }
 
     void Client::startGatewayPolling() {
-        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body, beast::error_code ec) {
+        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body, boost::system::error_code ec) {
             if (!gatewayPoll) return;
 
             if (ec == boost::asio::error::broken_pipe) { // unexpected disconnect.
@@ -501,8 +501,8 @@ namespace Hexicord {
                 if (!activeRestRequest) {
                     restConnection->request({ "HEAD", "/", 11, {}, {} });
                 }
-            } catch (beast::system_error& excp) {
-                if (excp.code() == beast::http::error::end_of_stream) {
+            } catch (boost::system::system_error& excp) {
+                if (excp.code() == boost::beast::http::error::end_of_stream) {
                     restConnection->close();
                     // we should not reuse socket.
                     REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
