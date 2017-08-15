@@ -1,3 +1,4 @@
 [submodule "lib/beast"]
-	path = lib/beast
-	url = https://github.com/vinniefalco/beast.git
+    path = lib/beast
+    branch = master
+	url = https://github.com/boostorg/beast.git
