@@ -1,12 +1,11 @@
 Hexicord
 =========
-[![Latest Release](https://img.shields.io/github/release/foxcpp/Hexicord.svg?style=flat-squared)](https://github.com/foxcpp/Hexicord/releases/latest) [![Discord server](https://img.shields.io/discord/342774887091535873.svg?style=flat-square)](https://discord.gg/4Y6Xaf4) [![Issues](https://img.shields.io/github/issues-raw/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/issues) [![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square")](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
+[![Latest Release](https://img.shields.io/github/release/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/releases/latest) [![Discord server](https://img.shields.io/discord/342774887091535873.svg?style=flat-square)](https://discord.gg/4Y6Xaf4) [![Issues](https://img.shields.io/github/issues-raw/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/issues) [![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square")](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
 
 [Discord API](https://discordapp.com/developers/docs/intro) implementation using C++11 with boost libraries.
 
 
-Table of contents 
-------------------
+### Table of contents 
 * [Features](#features)
 * [Installation](#installation)
   * [Dependencies](#dependencies)
@@ -19,7 +18,7 @@ Table of contents
 ### Features
 * Gateway session with auto-reconnection on failure.
 * Wrapper that hides weird API details.
-* Using HTTP persistent connection to reduce overhead in series of requests.
+* Using HTTP persistent connection to reduce overhead in series of REST requests.
 * Minimal runtime dependencies.
 
 ### Installation
@@ -77,13 +76,13 @@ int main() {
 
 ### Documentation
 
-Documentation is generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/) if `HEXICORD_DOCS` option is enabled.
+Documentation is generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/) if `HEXICORD_DOCS` option is enabled (default if Doxygen found).
 
 ```
 $ cmake . -DHEXICORD_DOCS=ON
 $ make doc
 ```
-Output will be in docs/.
+Output will be in `docs/`.
 
 Also documentation for latest release can be browsed online [here](https://foxcpp.github.io/Hexicord).
 
