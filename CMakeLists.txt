@@ -62,7 +62,7 @@ endif()
 # Documentation (Doxygen)
 
 find_package(Doxygen)
-option(HEXICORD_DOCS    "Generate HTML API documentation (Doxygen)"    OFF)
+option(HEXICORD_DOCS    "Generate HTML documentation (Doxygen)"    ${DOXYGEN_FOUND})
 if(HEXICORD_DOCS)
     if (NOT DOXYGEN_FOUND)
         message(FATAL_ERROR "Doxygen is required to build documentation.")
@@ -71,14 +71,16 @@ if(HEXICORD_DOCS)
 
     configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
 
-    add_custom_target(doc
+    add_custom_target(doc ALL
                       COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                       COMMENT "Generating HTML API documentation using Doxygen"
+                      SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile.in 
+                      BYPRODUCTS ${PROJECT_BINARY_DIR}/docs 
                       VERBATIM
                       )
 
-    install(DIRECTORY ${PROJECT_BINARY_DIR}/html DESTINATION share/doc)
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/docs/ DESTINATION share/doc/hexicord)
 endif()
 
 
@@ -123,8 +125,9 @@ target_include_directories(hexicord PRIVATE ${PROJECT_SOURCE_DIR}/lib/beast/incl
 target_include_directories(hexicord INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include ${PROJECT_SOURCE_DIR}/src)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
-# XXX: Look into path relocation for headers.
-#install(FILES ${HEXICORD_HEADERS} DESTINATION include/)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/hexicord
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.hpp")
 install(TARGETS hexicord 
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
