@@ -4,9 +4,9 @@
 #include <utility>
 #include <boost/asio/io_service.hpp>
 #include <hexicord/event_dispatcher.hpp>
-#include <hexicord/wss.hpp>
-#include <hexicord/rest.hpp>
-#include <hexicord/beast_rest.hpp>
+#include <hexicord/internal/wss.hpp>
+#include <hexicord/internal/rest.hpp>
+#include <hexicord/internal/beast_rest.hpp>
 
 /**
  *  \file client.hpp
@@ -184,7 +184,7 @@ namespace Hexicord {
         Client& operator=(Client&&) = default;
 
         /**
-         *  Returns gateway URL to be used with \ref gatewayConnect.
+         *  Returns gateway URL to be used with \ref connectToGateway.
          *
          *  Client expected to cache this URL and request new only
          *  if fails to use old one.
@@ -194,7 +194,7 @@ namespace Hexicord {
         std::string getGatewayUrl();
 
         /**
-         *  Return gateway URL to be used with \ref gatewayConnectBot
+         *  Return gateway URL to be used with \ref connectToGateway
          *  if client is a bot. Also returns recommended shards count.
          *
          *  \returns std::pair with gateway URL (first) and recommended
@@ -277,6 +277,8 @@ namespace Hexicord {
          *  \throws boost::system::system_error on connection problem.
          *
          *  \sa \ref sendGatewayMsg
+         *
+         *  \ingroup REST
          */
         nlohmann::json sendRestRequest(const std::string& method, const std::string& endpoint,
                                        const nlohmann::json& payload = {});
@@ -321,9 +323,25 @@ namespace Hexicord {
          */
         void run();
 
-        /// \defgroup REST helpers.
-        /// Functions for easier REST requests to common endpoints.
-        /// @{
+        /** \defgroup REST REST methods
+         *
+         *
+         *  Functions for performing requests to REST endpoints.
+         *
+         *  All methods in this group is thread-safe and stateless if not stated otherwise.
+         *
+         *  @{
+         */
+        
+        /**
+         *  \defgroup REST_channels Channel operations
+         *
+         *  Methods related to channels. 
+         *
+         *  Most require MANAGE_CHANNELS permission if operating on guild channel.
+         *
+         *  @{
+         */
         
         /**
          *  Get a channel by ID. Returns a guild channel or dm channel object.
@@ -339,12 +357,13 @@ namespace Hexicord {
          *  Requires the MANAGE_CHANNELS permission for the guild.
          *  Fires ChannelUpdate event.
          *
-         *  \param name      2-100 character channel name.
-         *  \param position  The position of the channel in the left-hand listing.
-         *  \param topic     0-1024 character channel topic (Text channel only).
-         *  \param bitrate   The bitrate (in bits) for voice channel; 8000 to 96000 
-         *                   (to 128000 for VIP servers).
-         *  \param userLimit The user limit for voice channels; 0-99, 0 means no limit.
+         *  \param channelId  Snowflake ID of target channel.
+         *  \param name       2-100 character channel name.
+         *  \param position   The position of the channel in the left-hand listing.
+         *  \param topic      0-1024 character channel topic (Text channel only).
+         *  \param bitrate    The bitrate (in bits) for voice channel; 8000 to 96000 
+         *                    (to 128000 for VIP servers).
+         *  \param usersLimit The user limit for voice channels; 0-99, 0 means no limit.
          *
          *  \throws APIError on API error (invalid channel ID, missing permissions).
          *  \throws std::invalid_argument if no arguments other than channelId passed,
@@ -388,7 +407,8 @@ namespace Hexicord {
          *
          *  Requires READ_MESSAGES permission if operating on guild channel.
          *
-         *  \param startMessagesId  Return messages around/before/after (depending on mode) this ID
+         *  \param channelId        Snowflake ID of target channel.
+         *  \param startMessageId   Return messages around/before/after (depending on mode) this ID
          *  \param mode             See \ref GetMsgMode. Default is After.
          *  \param limit            Max number of messages to return (1-100). Default is 50.
          *
@@ -406,6 +426,9 @@ namespace Hexicord {
          *
          *  Requires READ_MESSAGES_HISTORY permission if operating on guild channel.
          *
+         *  \param channelId    Snowflake ID of target channel.
+         *  \param messageId    Snowflake ID of target message.
+         *
          *  \throws APIError on API error (invalid ID, missing permission).
          *  \throws boost::system::system_error on connection problem (rare).
          *
@@ -413,15 +436,26 @@ namespace Hexicord {
          */
         nlohmann::json getChannelMessage(uint64_t channelId, uint64_t messageId);
 
+        /// @} Channel methods
+        
+        /**
+         *  \defgroup REST_messages Messages operations
+         *
+         *  Methods related to messages.
+         *
+         *  @{
+         */
+
         /**
          *  Post a message to a guild text or DM channel. 
          *
          *  Requires SEND_MESSAGE permission if operating on guild channel.
          *  Fires MessageCreate event.
          *
-         *  \param text   The message text content (up to 2000 characters).
-         *  \param tts    Set whatever this is TTS message. Default is false.
-         *  \param nonce  Nonce that can be used for optimistic message sending. Default is none.
+         *  \param channelId    Snowflake ID of target channel.
+         *  \param text         The message text content (up to 2000 characters).
+         *  \param tts          Set whatever this is TTS message. Default is false.
+         *  \param nonce        Nonce that can be used for optimistic message sending. Default is none.
          *
          *  \throws APIError on API error (missing permission, invalid ID).
          *  \throws std::out_of_range if text is bigger than 2000 characters.
@@ -438,7 +472,9 @@ namespace Hexicord {
          *
          *  Fires MessageUpdate event.
          *
-         *  \param text     New text.
+         *  \param channelId    Snowflake ID of target channel.
+         *  \param messageId    Snowflake ID of target message.
+         *  \param text         New text.
          *
          *  \throws APIError on API error (editing other user's messages, invalid ID).
          *  \throws std::out_of_range if text is bigger than 2000 characters.
@@ -455,6 +491,9 @@ namespace Hexicord {
          *
          *  Fires MessageDelete event.
          *
+         *  \param channelId    Snowflake ID of target channel.
+         *  \param messageId    Snowflake ID of target message.
+         *
          *  \throws APIError on API error (missing permission, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
@@ -470,19 +509,25 @@ namespace Hexicord {
          *  \warning This method will not delete messages older than 2 weeks,
          *  and will fail if any message provided is older than that. 
          *
+         *  \param channelId    Snowflake ID of target channel.
+         *  \param messageIds   Vector of message IDs.
+         *
          *  \throws APIError on API error (missing permission, invalid ID, older than 2 weeks).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
 
-        /// @}
+        /// @} REST_messages
+
+        /// @} REST
 
         /**
          *  Can be changed if you need different API version but such changes
          *  should be avoided unless really necessary since it can affect
-         *  behavior of REST helpers.
+         *  behavior of REST methods.
          *
          *  \sa \ref sendRestRequest \ref gatewayPathSuffix
+         *  \ingroup REST
          */
         std::string restBasePath = "/api/v6";
 
@@ -501,7 +546,7 @@ namespace Hexicord {
         EventDispatcher eventDispatcher;
         
         /**
-         *  Used auth. token.
+         *  Used authorization token.
          */
         const std::string token;
 
@@ -509,7 +554,7 @@ namespace Hexicord {
          *  Get current gateway session ID.
          *  Empty if not connected to gateway yet.
          *
-         *  \sa \ref resumeGateway \ref lastSeqNumber \ref lastGatewayUrl
+         *  \sa \ref resumeGatewaySession \ref lastSeqNumber \ref lastGatewayUrl
          */
         inline const std::string& sessionId() const {
             return sessionId_;
@@ -519,7 +564,7 @@ namespace Hexicord {
          *  Get last received event sequence number.
          *  -1 if not connected to gateway yet.
          *
-         *  \sa \ref resumeGateway sessionId lastGatewayUrl
+         *  \sa \ref resumeGatewaySession sessionId lastGatewayUrl
          */
         inline int lastSeqNumber() const {
             return lastSeqNumber_;
@@ -529,7 +574,7 @@ namespace Hexicord {
          *  Get last used gateway URL. 
          *  Empty if not connected to gateway yet.
          *
-         *  \sa \ref resumeGateway \ref lastSeqNumber \ref sessionId
+         *  \sa \ref resumeGatewaySession \ref lastSeqNumber \ref sessionId
          */
         inline const std::string& lastGatewayUrl() const {
             return lastUsedGatewayUrl;

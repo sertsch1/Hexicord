@@ -7,9 +7,9 @@
 #include <boost/asio/ssl.hpp>               // boost::asio::ssl
 #include <boost/asio/ssl/stream.hpp>        // boost::asio::ssl::stream
 #include <boost/asio/ssl/context.hpp>       // boost::asio::ssl::context
-#include <boost/beast/core/error.hpp>             // boost::system::system_error, boost::system::error_code
-#include <boost/beast/http/vector_body.hpp>       // boost::beast::http::vector_body
-#include <hexicord/rest.hpp>                // Hexicord::REST::HTTPResponse
+#include <boost/beast/core/error.hpp>       // boost::system::system_error, boost::system::error_code
+#include <boost/beast/http/vector_body.hpp> // boost::beast::http::vector_body
+#include <hexicord/internal/rest.hpp>       // Hexicord::REST::HTTPResponse
 
 /**
  *  \file beast_rest.hpp

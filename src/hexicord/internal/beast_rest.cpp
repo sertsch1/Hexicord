@@ -1,11 +1,11 @@
-#include <hexicord/beast_rest.hpp>
+#include <hexicord/internal/beast_rest.hpp>
 #include <boost/asio/ssl.hpp>                       // boost::asio::ssl
 #include <boost/asio/ssl/error.hpp>                 // boost::asio::ssl::error
 #include <boost/asio/ssl/rfc2818_verification.hpp>  // boost::asio::ssl::rfc2818_verification.hpp
-#include <boost/asio/connect.hpp>
-#include <boost/beast/http/write.hpp>                     // boost::beast::http::write
-#include <boost/beast/http/read.hpp>                      // boost::beast::http::read
-#include <boost/beast/core/flat_buffer.hpp>               // boost::beast::flat_buffer
+#include <boost/asio/connect.hpp>                   // boost::asio::connect
+#include <boost/beast/http/write.hpp>               // boost::beast::http::write
+#include <boost/beast/http/read.hpp>                // boost::beast::http::read
+#include <boost/beast/core/flat_buffer.hpp>         // boost::beast::flat_buffer
 
 namespace Hexicord {
     namespace ssl = boost::asio::ssl;

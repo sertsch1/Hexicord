@@ -5,9 +5,9 @@
 #---------------------------------------------------------------------------
 
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
-PROJECT_NUMBER         = @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
-PROJECT_BRIEF          = Discord API implementation.
+PROJECT_NAME           = "@PROJECT_NAME@"
+PROJECT_NUMBER         = @PROJECT_VERSION@
+PROJECT_BRIEF          = "Discord API implementation for C++ using boost."
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       = .
 CREATE_SUBDIRS         = NO
@@ -108,15 +108,15 @@ WARN_LOGFILE           =
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
 
-INPUT                  = @CMAKE_SOURCE_DIR@/src
+INPUT                  = @CMAKE_SOURCE_DIR@/README.md @CMAKE_SOURCE_DIR@/src
 INPUT_ENCODING         = UTF-8
-FILE_PATTERNS          = *.cpp *.hpp
+FILE_PATTERNS          = *.hpp
 RECURSIVE              = YES
-EXCLUDE                = @CMAKE_SOURCE_DIR@/lib/ @CMAKE_SOURCE_DIR@/src/hexicord/json.hpp @CMAKE_SOURCE_DIR@/src/hexicord/rest.hpp @CMAKE_SOURCE_DIR@/src/hexicord/beast_rest.hpp @CMAKE_SOURCE_DIR@/src/hexicord/wss.hpp
+EXCLUDE                = @CMAKE_SOURCE_DIR@/src/hexicord/json.hpp @CMAKE_SOURCE_DIR@/src/hexicord/internal 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
-EXCLUDE_SYMBOLS        = Hexicord::_detail
-EXAMPLE_PATH           = examples
+EXCLUDE_SYMBOLS        =
+EXAMPLE_PATH           = @CMAKE_SOURCE_DIR@/examples
 EXAMPLE_PATTERNS       =
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             =
@@ -124,13 +124,13 @@ INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
 FILTER_SOURCE_PATTERNS =
-USE_MDFILE_AS_MAINPAGE = README.md
+USE_MDFILE_AS_MAINPAGE = @CMAKE_SOURCE_DIR@/README.md 
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing
 #---------------------------------------------------------------------------
 
-SOURCE_BROWSER         = NO
+SOURCE_BROWSER         = YES
 INLINE_SOURCES         = NO
 STRIP_CODE_COMMENTS    = YES
 REFERENCED_BY_RELATION = NO
@@ -153,7 +153,7 @@ IGNORE_PREFIX          =
 #---------------------------------------------------------------------------
 
 GENERATE_HTML          = YES
-HTML_OUTPUT            = html
+HTML_OUTPUT            = docs
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            =
 HTML_FOOTER            =
