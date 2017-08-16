@@ -1,6 +1,7 @@
 #include <hexicord/client.hpp>
 #include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <hexicord/internal/utils.hpp>
 
 #ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
     #include <iostream>
@@ -52,7 +53,7 @@ namespace Hexicord {
         }
 
         DEBUG_MSG("Performing WebSocket handshake...");
-        gatewayConnection->handshake(domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
+        gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
 
         DEBUG_MSG("Reading Hello message.");
         nlohmann::json gatewayHello = readGatewayMessage();
@@ -91,7 +92,7 @@ namespace Hexicord {
         }
 
         DEBUG_MSG("Performing WebSocket handshake...");
-        gatewayConnection->handshake(domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
+        gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
        
         DEBUG_MSG("Reading Hello message...");
         nlohmann::json gatewayHello = readGatewayMessage();
@@ -367,62 +368,6 @@ namespace Hexicord {
 
     void Client::deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/bulk-delete", {{ "messages", messageIds }});
-    }
-
-    std::string Client::domainFromUrl(const std::string& url) {
-        enum State {
-            ReadingSchema,
-            ReadingSchema_Colon,
-            ReadingSchema_FirstSlash,
-            ReadingSchema_SecondSlash,
-            ReadingDomain,
-            End 
-        } state = ReadingSchema;
-
-        std::string result;
-        for (char ch : url) {
-            switch (state) {
-            case ReadingSchema:
-                if (ch == ':') {
-                    state = ReadingSchema_Colon;
-                } else if (!std::isalnum(ch)) {
-                    throw std::invalid_argument("Missing colon after schema.");
-                }
-                break;
-            case ReadingSchema_Colon:
-                if (ch == '/') {
-                    state = ReadingSchema_FirstSlash;
-                } else {
-                    throw std::invalid_argument("Missing slash after schema.");
-                }
-                break;
-            case ReadingSchema_FirstSlash:
-                if (ch == '/') {
-                    state = ReadingSchema_SecondSlash;
-                } else {
-                    throw std::invalid_argument("Missing slash after schema.");
-                }
-                break;
-            case ReadingSchema_SecondSlash:
-                if (std::isalnum(ch) || ch == '-' || ch == '_') {
-                    state = ReadingDomain;
-                    result += ch;
-                } else {
-                    throw std::invalid_argument("Invalid first domain character.");
-                }
-                break;
-            case ReadingDomain:
-                if (ch == '/') {
-                    state = End;
-                } else {
-                    result += ch;
-                }
-            case End:
-                break;
-            }
-            if (state == End) break;
-        }
-        return result;
     }
 
     void Client::startGatewayPolling() {

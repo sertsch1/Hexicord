@@ -600,8 +600,6 @@ private:
         void startGatewayHeartbeat();
         void startRestKeepaliveTimer();
 
-        static std::string domainFromUrl(const std::string& url);
-
         std::string sessionId_;
         std::string lastUsedGatewayUrl;
 
