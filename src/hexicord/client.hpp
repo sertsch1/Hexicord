@@ -518,7 +518,191 @@ namespace Hexicord {
         void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
 
         /// @} REST_messages
+        
+        /**
+         *  \defgroup REST_users Users methods
+         *
+         *  Methods related to users.
+         *
+         *  @{
+         */
 
+        /**
+         *  Returns the user object of the requester's account. 
+         *
+         *  For OAuth2, this requires the identify scope, which will return
+         *  the object without an email, and optionally the email scope,
+         *  which returns the object with an email.
+         *
+         *  \throws APIError on API error (missing permissions).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getMe();
+
+        /**
+         *  Return a user object for gived user ID.
+         *
+         *  \param id   User snowflake ID.
+         *
+         *  \throws APIError on API error (???).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getUser(uint64_t id);
+
+        /**
+         *  Change username.
+         *
+         *  May cause discriminator to be randomized.
+         *
+         *  \param newUsername  New username.
+         *  Discord enforces the following restrictions for usernames and nicknames:
+         *  * Names can contain most valid unicode characters. We limit some
+         *    zero-width and non-rendering characters.
+         *  * Names must be between 2 and 32 characters long.
+         *  * Names cannot contain the following substrings: '@', '#',
+         *    ':', '```'.
+         *  * Names cannot be: 'discordtag', 'everyone', 'here'.
+         *  * Names are sanitized and trimmed of leading, trailing, and
+         *    exessive internal whitespace.
+         *
+         *  There are other rules and restrictions not shared here for the sake
+         *  of spam and abuse mitigation, but the majority of users won't
+         *  encounter them. It's important to properly handle all error 
+         *  messages returned by Discord when editing or updating names.
+         *
+         *  \throws std::out_of_range if name.size() is 1 or > 32.
+         *  \throws std::invalid_argument if name is 'discordtag', 'everyone',
+         *          'here' or contains '@', '#', ':', or '```'.
+         *  \throws APIError on API error (invalid name).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns User object after change.
+         */
+        nlohmann::json setUsername(const std::string& newUsername);
+
+        enum AvatarFormat {
+            /// Try to detect avatar format. 
+            /// Always works for valid PNG/GIF/JPEG but may also "detect"
+            /// image in arbitary data.
+            Detect,
+            
+            Png,
+            Gif,
+            Jpeg
+        };
+
+        /**
+         *  Change avatar.
+         *
+         *  \throws APIError on API error (???).
+         *  \throws std::invalid_argument if format is Detect and detection failed.
+         *  \throws boost::system::system_error on connection problem (rare).
+         *                                                                    
+         *  \returns User object after change.
+         */
+        nlohmann::json setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format = Detect);
+
+        /**
+         *  Change avatar.
+         *
+         *  Convenience overload. Reads stream into vector and passes to first overload.
+         *
+         *  \throws APIError on API error (???).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *                                                                    
+         *  \returns User object after change.
+         */
+        nlohmann::json setAvatar(std::istream&& avatarStream, AvatarFormat format = Detect);
+
+        /**
+         *  Returns list of partial guild object the current user is member of.
+         *
+         *  Requires guilds OAuth2 scope.
+         *
+         *  Example of partial guild object:
+         *  ```json
+         *  {
+         *      "id": "80351110224678912",
+         *      "name": "1337 Krew",
+         *      "icon": "8342729096ea3675442027381ff50dfe",
+         *      "owner": true,
+         *      "permissions": 36953089
+         *  }
+         *  ```
+         *  Fields have same meaning as regular in full guild object.
+         *
+         *  \note This methods returns 100 guilds by default, which is the
+         *  maximum number of guilds a non-bot user can join. Therefore,
+         *  pagination is not needed for integrations that need to get a
+         *  list of users' guilds.
+         *
+         *  \param limit    Max number of guilds to return (1-100).
+         *  \param startId  Get guilds **after** this guild ID.
+         *  \param before   Get guilds **before** startId, not after.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getUserGuilds(unsigned short limit = 100, uint64_t startId = 0, bool before = false);
+
+        /**
+         *  Leave a guild.
+         *
+         *  \param guildId  Guild snowflake ID.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        void leaveGuild(uint64_t guildId);
+
+        /**
+         *  Returns a list of DM channel objects.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getUserDms();
+
+        /**
+         *  Create a new DM channel with a user.
+         *
+         *  \param recipientId  Recipient user showflake ID.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns Created DM channel object.
+         */
+        nlohmann::json createDm(uint64_t recipientId);
+
+        /**
+         *  Create a new group DM channel with multiple users. Returns 
+         *  a DM channel object.
+         *
+         *  \warning By default this method is limited to 10 active group DMs.
+         *  These limits are raised for whitelisted GameBridge applications.
+         *
+         *  \param accessTokens Access tokens of users that have granted your 
+         *                      app the gdm.join scope.
+         *  \param nicks        A dictionary of user ids to their respective nicknames.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json createGroupDm(const std::vector<uint64_t>& accessTokens,
+                                     const std::unordered_map<uint64_t, std::string>& nicks);
+
+        /**
+         *  Returns a list of connection objects.
+         *
+         *  Requires the connections OAuth2 scope.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getConnections();
+
+        /// @} REST_users
         /// @} REST
 
         /**

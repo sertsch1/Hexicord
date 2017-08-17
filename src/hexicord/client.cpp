@@ -21,7 +21,8 @@ namespace Hexicord {
 
         // It's strange but Discord API requires "DiscordBot" user-agent for any connections
         // including non-bots. Referring to https://discordapp.com/developers/docs/reference#user-agent
-        restConnection->connectionHeaders.insert({ "User-Agent", "DiscordBot (" HEXICORD_GITHUB ", " HEXICORD_VERSION ")" });
+        restConnection->connectionHeaders.insert({ "User-Agent", 
+                "DiscordBot (" HEXICORD_GITHUB ", " HEXICORD_VERSION ")" });
     }
 
     Client::~Client() {
@@ -45,8 +46,10 @@ namespace Hexicord {
         return { response["url"].get<std::string>(), response["shards"].get<unsigned>() };
     }
 
-    void Client::resumeGatewaySession(const std::string& gatewayUrl, const std::string& token, std::string sessionId, int lastSeq) {
-        DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId + " lastSeq=" + std::to_string(lastSeq));
+    void Client::resumeGatewaySession(const std::string& gatewayUrl, const std::string& token,
+                                      std::string sessionId, int lastSeq) {
+        DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
+                  " lastSeq=" + std::to_string(lastSeq));
        
         if (!gatewayConnection) {
             gatewayConnection = std::unique_ptr<TLSWebSocket>(new TLSWebSocket(ioService));
@@ -82,7 +85,8 @@ namespace Hexicord {
         startGatewayPolling();
     }
 
-    void Client::connectToGateway(const std::string& gatewayUrl, int shardId, int shardCount, const nlohmann::json& initialPresense) {
+    void Client::connectToGateway(const std::string& gatewayUrl, int shardId, int shardCount,
+                                  const nlohmann::json& initialPresense) {
         // Set if we didn't done it already. Since Client may be actually used without prior call
         // to getGatewayUrlBot because of sharding.
         restConnection->connectionHeaders.insert({ "Authorization", std::string("Bot ") + token });
@@ -147,7 +151,8 @@ namespace Hexicord {
         gatewayConnection.reset(nullptr);
     }
 
-    nlohmann::json Client::sendRestRequest(const std::string& method, const std::string& endpoint, const nlohmann::json& payload) {
+    nlohmann::json Client::sendRestRequest(const std::string& method, const std::string& endpoint,
+                                           const nlohmann::json& payload) {
         if (!restConnection->isOpen()) {
             restConnection->open();
             startRestKeepaliveTimer();
@@ -363,15 +368,110 @@ namespace Hexicord {
     }
 
     void Client::deleteMessage(uint64_t channelId, uint64_t messageId) {
-        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/" + std::to_string(messageId));
+        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/" +
+                        std::to_string(messageId));
     }
 
     void Client::deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds) {
-        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/bulk-delete", {{ "messages", messageIds }});
+        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/bulk-delete",
+                        {{ "messages", messageIds }});
+    }
+
+    nlohmann::json Client::getMe() {
+        return sendRestRequest("GET", std::string("/users/@me"));
+    }
+
+    nlohmann::json Client::getUser(uint64_t id) {
+        return sendRestRequest("GET", std::string("/users/") + std::to_string(id));
+    }
+
+    nlohmann::json Client::setUsername(const std::string& newUsername) {
+        if (newUsername.size() < 2 || newUsername.size() > 32) {
+            throw std::out_of_range("newUseranme size out of range (should be 2-32)");
+        }
+        if (newUsername == "discordtag" || newUsername == "everyone" || newUsername == "here") {
+            throw std::invalid_argument("newUsername should not be 'discordtag', 'everyone' or 'here'");
+        }
+        unsigned short foundGraves = 0;
+        for (char ch : newUsername) {
+            if (ch == '@' || ch == '#' || ch == ':') {
+                throw std::invalid_argument("newUsername contains foribbden characters ('@', '#' or ':')");
+            }
+            if (ch == '`') {
+                ++foundGraves;
+                if (foundGraves == 3) {
+                    throw std::invalid_argument("newUsername contains forbidden substring: '```'");
+                }
+            } else {
+                foundGraves = 0;
+            }
+        }
+
+        return sendRestRequest("PATCH", "/users/@me", {{ "username", newUsername }});
+    }
+
+    nlohmann::json Client::setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format) {
+        std::string mimeType;
+
+        if (format == Gif  || (format == Detect && Utils::Magic::isGif(avatarBytes)))  mimeType = "image/gif";
+        if (format == Jpeg || (format == Detect && Utils::Magic::isJfif(avatarBytes))) mimeType = "image/jpeg";
+        if (format == Png  || (format == Detect && Utils::Magic::isPng(avatarBytes)))  mimeType = "image/png";
+
+        if (mimeType.empty()) {
+            throw std::invalid_argument("Failed to detect avatar format.");
+        }
+
+        std::string dataUrl = std::string("data:") + mimeType + ";base64," + Utils::base64Encode(avatarBytes);
+        return sendRestRequest("PATCH", "/users/@me", {{ "avatar", dataUrl }});
+    }
+
+    nlohmann::json Client::setAvatar(std::istream&& avatarStream, AvatarFormat format) {
+        // TODO: Implement stream sending.
+        std::vector<uint8_t> avatarBytes{std::istreambuf_iterator<char>(avatarStream), std::istreambuf_iterator<char>()};
+        return setAvatar(avatarBytes, format);
+    }
+
+    nlohmann::json Client::getUserGuilds(unsigned short limit, uint64_t startId, bool before) {
+        std::string query;
+        if (limit != 100) {
+            query += "?limit=";
+            query += std::to_string(limit);
+        }
+        if (startId != 0) {
+            query += query.empty() ? "?"      : "&";
+            query += before        ? "before" : "after";
+            query += std::to_string(startId);
+        }
+        return sendRestRequest("GET", std::string("/users/@me/guilds") + query);
+    }
+
+    void Client::leaveGuild(uint64_t guildId) {
+        sendRestRequest("DELETE", std::string("/users/@me/guilds/") + std::to_string(guildId));
+    }
+
+    nlohmann::json Client::getUserDms() {
+        return sendRestRequest("GET", "/users/@me/channels");
+    }
+
+    nlohmann::json Client::createDm(uint64_t recipientId) {
+        return sendRestRequest("POST", "/users/@me/channels", {{ "recipient_id", recipientId }});
+    }
+
+
+    nlohmann::json Client::createGroupDm(const std::vector<uint64_t>& accessTokens,
+                                         const std::unordered_map<uint64_t, std::string>& nicks) {
+
+        return sendRestRequest("POST", "/users/@me/channels", {{ "access_tokens", accessTokens },
+                                                               { "nicks",         nicks        }});
+    }
+
+    nlohmann::json Client::getConnections() {
+        return sendRestRequest("GET", "/users/@me/connections");
     }
 
     void Client::startGatewayPolling() {
-        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body, boost::system::error_code ec) {
+        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
+                                                   boost::system::error_code ec) {
             if (!gatewayPoll) return;
 
             if (ec == boost::asio::error::broken_pipe) { // unexpected disconnect.
@@ -393,8 +493,10 @@ namespace Hexicord {
 
             switch (message["op"].get<int>()) {
             case GatewayOpCodes::EventDispatch:
-                DEBUG_MSG(std::string("Gateway Event: t=\"") + message["t"].get<std::string>() + "\" s=" + std::to_string(message["s"].get<int>()));
+                DEBUG_MSG(std::string("Gateway Event: t=") + message["t"].get<std::string>() +
+                          " s=" + std::to_string(message["s"].get<int>()));
                 lastSeqNumber_ = message["s"];
+         
                 eventDispatcher.dispatchEvent(message["t"].get<std::string>(), message["d"]);
                 break;
             case GatewayOpCodes::HeartbeatAck:

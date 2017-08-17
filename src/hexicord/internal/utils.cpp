@@ -41,10 +41,10 @@ namespace Hexicord { namespace Utils {
                 bytes[1] == 'P' &&
                 bytes[2] == 'N' &&
                 bytes[3] == 'G' &&
-                bytes[4] == '\r' && // CR
-                bytes[5] == '\n' && // LF
-                bytes[6] == 26 &&   // SUB
-                bytes[7] == '\n';   // LF
+                bytes[4] == 13  && // CR
+                bytes[5] == 10  && // LF
+                bytes[6] == 26  && // SUB
+                bytes[7] == 10;    // LF
         }
     }
 
