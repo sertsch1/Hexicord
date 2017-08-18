@@ -6,7 +6,7 @@ macro(define_boost_target component_name)
     add_library(Boost::${component_name} ALIAS __Boost_${component_name})
 endmacro()
 
-macro(define_openssl_crypto)
+macro(define_openssl_crypto_target)
     add_library(__OpenSSL_Crypto INTERFACE)
     target_include_directories(__OpenSSL_Crypto INTERFACE ${OPENSSL_INCLUDE_DIRS})
     if(${CMAKE_VERSION} VERSION_LESS 3.2)
@@ -20,7 +20,7 @@ macro(define_openssl_crypto)
 endmacro()
 
 
-macro(define_openssl_ssl)
+macro(define_openssl_ssl_target)
     add_library(__OpenSSL_SSL INTERFACE)
     target_include_directories(__OpenSSL_SSL INTERFACE ${OPENSSL_INCLUDE_DIRS})
     if(${CMAKE_VERSION} VERSION_LESS 3.2)
