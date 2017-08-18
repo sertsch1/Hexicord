@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.0)
 
 # Better behavior of VS generator.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -119,6 +119,7 @@ endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.1)
     define_threads_target()
+    include(cmake/cmake_cxx11_standard.cmake)
 endif()
 
 
