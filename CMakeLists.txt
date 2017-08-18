@@ -108,13 +108,17 @@ find_package(Threads REQUIRED)
 
 include(cmake/external-targets.cmake)
 
-if (CMAKE_VERSION VERSION_LESS 3.5)
+if(CMAKE_VERSION VERSION_LESS 3.5)
     define_boost_target(system)
 endif()
 
-if (CMAKE_VERSION VERSION_LESS 3.4)
+if(CMAKE_VERSION VERSION_LESS 3.4)
     define_openssl_ssl_target()
     define_openssl_crypto_target()
+endif()
+
+if(CMAKE_VERSION VERSION_LESS 3.1)
+    define_threads_target()
 endif()
 
 
