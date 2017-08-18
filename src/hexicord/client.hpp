@@ -272,6 +272,7 @@ namespace Hexicord {
          *                   "PATCH", "PUT", "DELETE".
          *  \param endpoint  endpoint URL relative to base URL (including leading slash).
          *  \param payload   JSON payload, pass empty object (default) if none.
+         *  \param query     GET request query.
          *
          *  \throws APIError on API error.
          *  \throws boost::system::system_error on connection problem.
@@ -281,7 +282,7 @@ namespace Hexicord {
          *  \ingroup REST
          */
         nlohmann::json sendRestRequest(const std::string& method, const std::string& endpoint,
-                                       const nlohmann::json& payload = {});
+                                       const nlohmann::json& payload = {}, const std::unordered_map<std::string, std::string>& query = {});
 
         /**
          *  Send raw gateway message.

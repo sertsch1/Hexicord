@@ -71,16 +71,6 @@ namespace Hexicord {
                 { "seq", lastSeq }
         });
 
-        DEBUG_MSG("Waiting for Resume event...");
-        nlohmann::json resumedMsg = readGatewayMessage();
-        if (resumedMsg["op"] == GatewayOpCodes::InvalidSession) {
-            throw GatewayError("Invalid session ID.");            
-        } else if (resumedMsg["op"] == GatewayOpCodes::EventDispatch && resumedMsg["t"] == "RESUMED") {
-            DEBUG_MSG("Session resumed.");
-        } else {
-            // gateway sent something else? WAT. TODO: we have to handle it somehow.
-        }
-
         DEBUG_MSG("Starting gateway polling...");
         startGatewayPolling();
     }
@@ -152,16 +142,29 @@ namespace Hexicord {
     }
 
     nlohmann::json Client::sendRestRequest(const std::string& method, const std::string& endpoint,
-                                           const nlohmann::json& payload) {
+                                           const nlohmann::json& payload, const std::unordered_map<std::string, std::string>& query) {
         if (!restConnection->isOpen()) {
             restConnection->open();
             startRestKeepaliveTimer();
         }
 
+        // consturct query string if any.
+        std::string queryString;
+        if (!query.empty()) {
+            queryString += '?';
+            for (auto queryParam : query) {
+                queryString += queryParam.first;
+                queryString += '=';
+                queryString += Utils::urlEncode(queryParam.second);
+                queryString += '&';
+            }
+            queryString.pop_back(); // remove extra & at end.
+        }
+
         REST::HTTPRequest request;
 
         request.method  = method;
-        request.path    = restBasePath + endpoint;
+        request.path    = restBasePath + endpoint + queryString;
         request.version = 11;
         if (!payload.is_null() && !payload.empty()) {
             request.headers.insert({ "Content-Type", "application/json" });
@@ -172,11 +175,13 @@ namespace Hexicord {
         activeRestRequest = true;
         REST::HTTPResponse response;
         try {
-            DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint);
+            DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint + queryString + " " + payload.dump());
             response = restConnection->request(request);
         } catch (boost::system::system_error& excp) {
             activeRestRequest = false;
-            if (excp.code() != boost::beast::http::error::end_of_stream) throw;
+            if (excp.code() != boost::beast::http::error::end_of_stream &&
+                excp.code() != boost::asio::error::broken_pipe &&
+                excp.code() != boost::asio::error::connection_reset) throw;
 
             DEBUG_MSG("HTTP Connection closed by remote. Reopenning and retrying.");
             restConnection->close();
@@ -198,16 +203,22 @@ namespace Hexicord {
 
         if (response.statusCode / 100 != 2) {
             DEBUG_MSG("Got non-2xx HTTP status code.");
+            DEBUG_MSG(jsonResp.dump(4));
             int code = -1;
             std::string message;
             if (jsonResp.find("code") != jsonResp.end()) code = jsonResp["code"];
             if (jsonResp.find("message") != jsonResp.end()) {
                 message = std::string("API error: ") + jsonResp["message"].get<std::string>();
-            } else if (jsonResp.find("_misc") != jsonResp.end() && jsonResp["_misc"].is_array() &&
-                       jsonResp["_misc"].size() == 1){
-                message = std::string("Internal API error: ") + jsonResp["_misc"][0].get<std::string>();
             } else {
-                message = "Unknown API error";
+                for (auto param : payload.get<std::unordered_map<std::string, nlohmann::json> >()) {
+                    // TODO: Throw something like "InvalidArgument"
+                    auto it = jsonResp.find(param.first);
+                    if (it != jsonResp.end() && it->size() != 0) {
+                        throw APIError(std::string("Invalid argument: ") + param.first + ": " +
+                                       it->at(0).get<std::string>());
+                    }
+                    throw APIError("Unknown API error", code, response.statusCode);
+                }
             }
             throw APIError(message, code, response.statusCode);
         }
@@ -303,25 +314,20 @@ namespace Hexicord {
 
     nlohmann::json Client::getChannelMessages(uint64_t channelId, uint64_t startMessageId,
                                               GetMsgMode mode, unsigned short limit) {
-
-        std::string queryString;
-        queryString.reserve(/* approximate length of query keys */ 9 + 
-                            /* approximate snowflake length */ 20 + 
-                            /* limit value length */ 3);
-        queryString.push_back('?'); // appended after reserve to avoid first allocation.
+        
+        std::unordered_map<std::string, std::string> query;
 
         switch (mode) {
         case Around:
-            queryString += "around=";
+            query.insert({ "around", std::to_string(startMessageId) });
             break;
         case Before:
-            queryString += "before=";
+            query.insert({ "before", std::to_string(startMessageId) });
             break;
         case After:
-            queryString += "after=";
+            query.insert({ "after",  std::to_string(startMessageId) }); 
             break;
         }
-        queryString += std::to_string(startMessageId);
 
         if (limit != 50) { // 50 is default value in v6, no need to pass it explicitly.
             if (limit > 100 || limit == 0) {
@@ -330,12 +336,11 @@ namespace Hexicord {
             if (mode == After && limit == 1) {
                 throw std::out_of_range("limit out of range (should be 2-100 for After mode).");
             }
-            queryString += "&limit=";
-            queryString += std::to_string(limit);
+            query.insert({ "limit", std::to_string(limit) });
         }
 
-        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
-                               "/messages" + queryString);
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + "/messages",
+                               query);
     }
 
     nlohmann::json Client::getChannelMessage(uint64_t channelId, uint64_t messageId) {
@@ -432,17 +437,14 @@ namespace Hexicord {
     }
 
     nlohmann::json Client::getUserGuilds(unsigned short limit, uint64_t startId, bool before) {
-        std::string query;
+        std::unordered_map<std::string, std::string> query;
         if (limit != 100) {
-            query += "?limit=";
-            query += std::to_string(limit);
+            query.insert({ "limit", std::to_string(limit) });
         }
         if (startId != 0) {
-            query += query.empty() ? "?"      : "&";
-            query += before        ? "before" : "after";
-            query += std::to_string(startId);
+            query.insert({ before ? "before" : "after", std::to_string(startId) });
         }
-        return sendRestRequest("GET", std::string("/users/@me/guilds") + query);
+        return sendRestRequest("GET", "/users/@me/guilds", {}, query);
     }
 
     void Client::leaveGuild(uint64_t guildId) {
@@ -508,10 +510,13 @@ namespace Hexicord {
                 disconnectFromGateway();
                 resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
                 break;
+            case GatewayOpCodes::InvalidSession:
+                DEBUG_MSG("Invalid session error.");
+                throw GatewayError("Invalid session.");
+                break;
             default:
                 DEBUG_MSG("Unexpected gateway message.");
                 DEBUG_MSG(message);
-            //GatewayOpCodes::InvalidSession handled outside of this handler.
             }
 
             startGatewayPolling();
@@ -546,10 +551,14 @@ namespace Hexicord {
 
             try {
                 if (!activeRestRequest) {
+                    DEBUG_MSG("Sending HTTP keepalive...");
                     restConnection->request({ "HEAD", "/", 11, {}, {} });
+                } else {
+                    DEBUG_MSG("Not sending HTTP keep-alive: active request.");
                 }
             } catch (boost::system::system_error& excp) {
                 if (excp.code() == boost::beast::http::error::end_of_stream) {
+                    DEBUG_MSG("Connection closed during keepalive sending. Reopening...");
                     restConnection->close();
                     // we should not reuse socket.
                     REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);

@@ -4,6 +4,8 @@
 #include <cctype>       // std::isalnum
 #include <stdexcept>    // std::invalid_argument
 #include <cassert>      // assert
+#include <sstream>      // std::ostringstream
+#include <iomanip>      // std::setw
 
 namespace Hexicord { namespace Utils {
     namespace Magic {
@@ -132,4 +134,21 @@ namespace Hexicord { namespace Utils {
 	   return result;
 	}
 
+    std::string urlEncode(const std::string& raw) {
+        std::ostringstream resultStream;
+
+        resultStream.fill('0');
+        resultStream << std::hex;
+        
+        for (char ch : raw) {
+            if (std::isalnum(ch) || ch == '.' || ch == '~' || ch == '_' || ch == '-') {
+                resultStream << ch;
+            } else {
+                resultStream << std::uppercase;
+                resultStream << '%' << std::setw(2) << int(ch);
+                resultStream << std::nouppercase;
+            }
+        }
+        return resultStream.str();
+    }
 }} // namespace Hexicord::Utils

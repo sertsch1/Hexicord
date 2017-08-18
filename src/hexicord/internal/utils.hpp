@@ -28,6 +28,8 @@ namespace Hexicord { namespace Utils {
      *  Encode arbitrary data using base64.
      */
     std::string base64Encode(const std::vector<uint8_t>& bytes);
+
+    std::string urlEncode(const std::string& raw);
 }} // namespace Hexicord::Utils
 
 #endif // HEXICORD_UTILS_HPP
