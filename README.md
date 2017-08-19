@@ -72,7 +72,7 @@ int main() {
     });
 
     client.connectToGateway(client.getGatewayUrlBot()); // replace with client.getGatewayUrl() if not using bot account.
-    client.run();
+    ios.run(); 
 }
 ```
 
