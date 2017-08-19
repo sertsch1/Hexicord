@@ -449,6 +449,18 @@ namespace Hexicord {
         return sendRestRequest("GET", "/users/@me/connections");
     }
 
+    nlohmann::json Client::getInvite(const std::string& inviteCode) {
+        return sendRestRequest("GET", std::string("/invites/") + inviteCode);
+    }
+
+    nlohmann::json Client::revokeInvite(const std::string& inviteCode) {
+        return sendRestRequest("DELETE", std::string("/invites/") + inviteCode);
+    }
+
+    nlohmann::json Client::acceptInvite(const std::string& inviteCode) {
+        return sendRestRequest("POST", std::string("/invites/") + inviteCode);
+    }
+
     void Client::startGatewayPolling() {
         gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
                                                    boost::system::error_code ec) {

@@ -104,7 +104,7 @@ namespace Hexicord {
      *      });
      *
      *      client.connectToGateway(client.getGatewayUrlBot());
-     *      client.run();
+     *      ios.run();
      *  ```
      *
      *  ### Sharding (for bots)
@@ -146,7 +146,7 @@ namespace Hexicord {
      *          client.connectToGateway(gatewayUrl, 0, shardsCount);
      *      }
      *
-     *     client.run();
+     *      ios.run();
      *  ```
      */
     class Client {
@@ -680,6 +680,50 @@ namespace Hexicord {
         nlohmann::json getConnections();
 
         /// @} REST_users
+        
+        /**
+         *  \defgroup REST_invites Invites operations
+         *
+         *  Methods related to invites.
+         *
+         *  @{
+         */
+
+        /**
+         *  Returns an invite object for the given code.
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getInvite(const std::string& inviteCode);
+
+        /**
+         *  Delete (revoke) an invite. 
+         *
+         *  Requires the MANAGE_CHANNELS permission. 
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns An invite object.
+         */
+        nlohmann::json revokeInvite(const std::string& inviteCode);
+
+        /**
+         *  Accept an invite. 
+         *
+         *  This requires the guilds.join OAuth2 scope to be able to accept
+         *  invites on behalf of normal users (via an OAuth2 Bearer token). Bot
+         *  users are disallowed. 
+         *
+         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws boost::system::system_error on connection problem (rare).
+         *
+         *  \returns An invite object.
+         */
+        nlohmann::json acceptInvite(const std::string& inviteCode);
+
+        /// @} REST_invites
         /// @} REST
 
         /**
