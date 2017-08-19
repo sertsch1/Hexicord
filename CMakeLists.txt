@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.0)
 
 # Better behavior of VS generator.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -91,7 +91,7 @@ option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost COMPONENTS system)
 find_package(OpenSSL REQUIRED)
 
 
@@ -102,12 +102,54 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+
+#------------------------------------------------------------------------------
+# Old CMake compatibility
+
+include(cmake/external-targets.cmake)
+
+if(CMAKE_VERSION VERSION_LESS 3.5)
+    define_boost_target(system)
+endif()
+
+if(CMAKE_VERSION VERSION_LESS 3.4)
+    define_openssl_ssl_target()
+    define_openssl_crypto_target()
+endif()
+
+if(CMAKE_VERSION VERSION_LESS 3.1)
+    define_threads_target()
+    include(cmake/cmake_cxx11_standard.cmake)
+endif()
+
+
+#------------------------------------------------------------------------------
+# Beast
+
+find_package(Boost OPTIONAL_COMPONENTS beast)
+
+if(NOT Boost_beast_FOUND)
+    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/lib/beast/include)
+        message(FATAL_ERROR "Your system boost doesnt have beast component. Initialize lib/beast submodule using git submodule update --init.")
+    endif()
+
+    message(STATUS "No system boost.beast found, using lib/beast...")
+
+    add_library(__Boost_beast INTERFACE)
+    target_link_libraries(__Boost_beast INTERFACE Boost::system OpenSSL::SSL OpenSSL::Crypto)
+    target_include_directories(__Boost_beast INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
+
+    add_library(Boost::beast ALIAS __Boost_beast)
+elseif(CMAKE_VERSION VERSION_LESS 3.5)
+    define_boost_target(beast)
+endif()
+
+
 #------------------------------------------------------------------------------
 # Library
 
-option(HEXICORD_STATIC   "Build static library." ON )
-option(HEXICORD_SHARED   "Build shared library." OFF)
-option(HEXICORD_EXAMPLES "Build examples."       OFF)
+option(HEXICORD_STATIC "Build static library." ON )
+option(HEXICORD_SHARED "Build shared library." OFF)
 
 file(GLOB_RECURSE HEXICORD_HEADERS ${PROJECT_SOURCE_DIR}/src/*.hpp)
 file(GLOB_RECURSE HEXICORD_SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
@@ -120,17 +162,19 @@ if(HEXICORD_SHARED)
     add_library(hexicord SHARED ${HEXICORD_HEADERS} ${HEXICORD_SOURCES})
 endif()
 
-target_link_libraries(hexicord Threads::Threads Boost::system OpenSSL::SSL OpenSSL::Crypto)
-target_include_directories(hexicord PRIVATE ${PROJECT_SOURCE_DIR}/lib/beast/include ${PROJECT_SOURCE_DIR}/src)
-target_include_directories(hexicord INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(hexicord PUBLIC Threads::Threads Boost::beast Boost::system OpenSSL::SSL OpenSSL::Crypto)
+target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/hexicord
-        DESTINATION include
-        FILES_MATCHING PATTERN "*.hpp")
-install(TARGETS hexicord 
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
+# NOT SUPPORTED until we remove references to beast from headers.
+#install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/hexicord
+#        DESTINATION include
+#        FILES_MATCHING PATTERN "*.hpp")
+#install(TARGETS hexicord 
+#        ARCHIVE DESTINATION lib
+#        LIBRARY DESTINATION lib)
+
+option(HEXICORD_EXAMPLES "Build examples." OFF)
 
 if(HEXICORD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)

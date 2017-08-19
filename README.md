@@ -24,12 +24,13 @@ Hexicord
 ### Installation
 
 #### Requirements
-* CMake 3.7+
+* CMake 3.0+
 * GCC 4.8.1+ or Clang 3.3 or other C++11 compatible compiler
-* boost.asio (boost.system) 
-* OpenSSL
-* boost.beast (in-tree)
-* nlohmann/json (in-tree)
+* boost.asio 1.56+ (header-only, requires boost.system 1.56+)
+* OpenSSL 1.0.1+
+* boost.beast (submodule or system)
+* nlohmann/json (submodule)
+**Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in specified range.
 
 Following command should be enough on debian-based distros:
 ```
