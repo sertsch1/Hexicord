@@ -29,7 +29,8 @@ Hexicord
 * boost.asio 1.56+ (header-only, requires boost.system 1.56+)
 * OpenSSL 1.0.1+
 * boost.beast (submodule or system)
-* nlohmann/json (submodule)
+* nlohmann/json
+
 **Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in specified range.
 
 Following command should be enough on debian-based distros:
@@ -94,7 +95,7 @@ Here is some of the ways that you can contribute:
 * Submit a bug report. We love hearing about broken things, so that we can fix them.
 * Provide feedback. Even simple questions about how things work or why they were done a certain way carries value.
 * Test code. Checkout `dev` branch, compile it and start trying to break stuff! :-)
-* Write code. Check issues marked with [**help needed**](https://github.com/foxcpp/hexicord/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) tag. 
+* Write code. Check issues marked with [**help wanted**](https://github.com/foxcpp/hexicord/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) tag. 
 
 ##### Code style
 In short: camelCase (snake_case for files), 4 spaces indent, { on same line.
