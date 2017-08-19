@@ -1,5 +1,4 @@
 #include <hexicord/client.hpp>
-#include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <hexicord/internal/utils.hpp>
 
@@ -16,7 +15,6 @@ namespace Hexicord {
         , gatewayConnection(new TLSWebSocket(ioService))
         , token(token)
         , ioService(ioService)
-        , keepaliveTimer(ioService)
         , heartbeatTimer(ioService) {
 
         // It's strange but Discord API requires "DiscordBot" user-agent for any connections
@@ -26,9 +24,6 @@ namespace Hexicord {
     }
 
     Client::~Client() {
-        restKeepalive = false;
-        keepaliveTimer.cancel();
-
         if (gatewayConnection) disconnectFromGateway();
     }
 
@@ -145,7 +140,6 @@ namespace Hexicord {
                                            const nlohmann::json& payload, const std::unordered_map<std::string, std::string>& query) {
         if (!restConnection->isOpen()) {
             restConnection->open();
-            startRestKeepaliveTimer();
         }
 
         // consturct query string if any.
@@ -172,13 +166,11 @@ namespace Hexicord {
         }
         request.headers.insert({ "Accept", "application/json" });
 
-        activeRestRequest = true;
         REST::HTTPResponse response;
         try {
             DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint + queryString + " " + payload.dump());
             response = restConnection->request(request);
         } catch (boost::system::system_error& excp) {
-            activeRestRequest = false;
             if (excp.code() != boost::beast::http::error::end_of_stream &&
                 excp.code() != boost::asio::error::broken_pipe &&
                 excp.code() != boost::asio::error::connection_reset) throw;
@@ -244,20 +236,6 @@ namespace Hexicord {
                 resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
             }
         }
-    }
-
-    void Client::run() {
-        std::exception_ptr eptr;
-        std::thread second_thread([this, &eptr]() { 
-            try {
-                this->ioService.run();
-            } catch (...) {
-                eptr = std::current_exception();
-            }
-        });
-        ioService.run();
-        second_thread.join();
-        if (eptr) std::rethrow_exception(eptr);
     }
 
     nlohmann::json Client::getChannel(uint64_t channelId) {
@@ -540,37 +518,6 @@ namespace Hexicord {
             ++unansweredHeartbeats;
 
             startGatewayHeartbeat();
-        });
-    }
-
-    void Client::startRestKeepaliveTimer() {
-        keepaliveTimer.expires_from_now(boost::posix_time::seconds(10));
-        keepaliveTimer.async_wait([this](const boost::system::error_code& ec) {
-            if (ec == boost::asio::error::operation_aborted) return;
-            if (!restKeepalive) return;
-
-            try {
-                if (!activeRestRequest) {
-                    DEBUG_MSG("Sending HTTP keepalive...");
-                    restConnection->request({ "HEAD", "/", 11, {}, {} });
-                } else {
-                    DEBUG_MSG("Not sending HTTP keep-alive: active request.");
-                }
-            } catch (boost::system::system_error& excp) {
-                if (excp.code() == boost::beast::http::error::end_of_stream) {
-                    DEBUG_MSG("Connection closed during keepalive sending. Reopening...");
-                    restConnection->close();
-                    // we should not reuse socket.
-                    REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
-                    restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
-                    restConnection->connectionHeaders = std::move(prevHeaders);
-                    restConnection->open();
-                } else {
-                    throw;
-                }
-            }
-
-            startRestKeepaliveTimer();
         });
     }
 } // namespace Hexicord

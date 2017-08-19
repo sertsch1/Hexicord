@@ -300,30 +300,6 @@ namespace Hexicord {
          */
         void sendGatewayMsg(int opCode, const nlohmann::json& payload = {}, const std::string& t = "");
 
-        /**
-         *  Run bot in 2 threads (threading is important, see below).
-         *
-         *  If you need more than 2 threads, you may execute ioService.run()
-         *  manually, it's just wrapper to hide requirement of two threads to
-         *  operate correctly.
-         *
-         *  \b Implementation details:
-         *
-         *  Actually this method exactly following:
-         *  ```cpp
-         *      std::thread second_thread([this]() { this->ioService.run(); });
-         *      ioService.run();
-         *      second_thread.join();
-         *  ```
-         *  but adding code to "forward" exceptions from second_thread.
-         *
-         *  This second thread is important to send heartbeats at right time when
-         *  main thread is blocked at read. Both threads can't be blocked by async_read
-         *  because of "strict ordering" - only one asyncRead can be queued/running
-         *  at same time.
-         */
-        void run();
-
         /** \defgroup REST REST methods
          *
          *
@@ -783,24 +759,19 @@ private:
 
         void startGatewayPolling();
         void startGatewayHeartbeat();
-        void startRestKeepaliveTimer();
 
         std::string sessionId_;
         std::string lastUsedGatewayUrl;
 
         unsigned heartbeatIntervalMs;
-        bool heartbeat = true, restKeepalive = true, gatewayPoll = true;
+        bool heartbeat = true, gatewayPoll = true;
         int unansweredHeartbeats = 0;
-
-        // Set whatever there is sendRestRequest executing restConnection->request. 
-        // Used to prevent attempts to send keepalive requests during this.
-        bool activeRestRequest = false;
 
         std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> > restConnection;
         std::unique_ptr<TLSWebSocket> gatewayConnection;
         boost::asio::io_service& ioService; // non-owning reference to I/O service.
 
-        boost::asio::deadline_timer keepaliveTimer, heartbeatTimer;
+        boost::asio::deadline_timer heartbeatTimer;
     };
 }
 
