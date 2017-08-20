@@ -8,7 +8,6 @@ Hexicord
 ### Table of contents 
 * [Features](#features)
 * [Installation](#installation)
-  * [Dependencies](#dependencies)
 * [Usage](#usage)
 * [Documentation](#documentation)
 * [Contributing](#contributing)
@@ -25,17 +24,17 @@ Hexicord
 
 #### Requirements
 * CMake 3.0+
-* GCC 4.8.1+ or Clang 3.3 or other C++11 compatible compiler
-* boost.asio 1.56+ (header-only, requires boost.system 1.56+)
+* GCC 4.8.1+ or Clang 3.3+ or other C++11 compatible compiler
+* boost.asio 1.56+
+* boost.date_time
 * OpenSSL 1.0.1+
 * boost.beast (submodule or system)
-* nlohmann/json
 
 **Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in specified range.
 
 Following command should be enough on debian-based distros:
 ```
-# apt-get install cmake gcc libboost-system-dev libssl-dev
+# apt-get install cmake gcc libboost-dev libboost-date-time-dev libboost-system-dev libssl-dev
 ```
 
 
