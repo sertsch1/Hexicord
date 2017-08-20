@@ -537,7 +537,7 @@ namespace Hexicord {
             if (ec == boost::asio::error::operation_aborted) return;
             if (!heartbeat) return;
 
-            if (unansweredHeartbeats == 2) {
+            if (unansweredHeartbeats >= 2) {
                 DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
                 disconnectFromGateway(5000);
                 resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);

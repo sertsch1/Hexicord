@@ -809,7 +809,8 @@ private:
 
         unsigned heartbeatIntervalMs;
         bool heartbeat = true, gatewayPoll = true;
-        int unansweredHeartbeats = 0;
+        // gateway sends us HEARTBEAT_ACK after connection (???).
+        unsigned unansweredHeartbeats = 1;
 
         std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> > restConnection;
         std::unique_ptr<TLSWebSocket> gatewayConnection;
