@@ -505,6 +505,23 @@ namespace Hexicord {
         return sendRestRequest("POST", std::string("/invites/") + inviteCode);
     }
 
+    nlohmann::json Client::getChannelInvites(uint64_t channelId) {
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
+                                                  "/invites");
+    }
+
+    nlohmann::json Client::createInvite(uint64_t channelId, unsigned maxAgeSecs,
+                                        unsigned maxUses,
+                                        bool temporaryMembership,
+                                        bool unique) {
+        nlohmann::json payload;
+        if (maxAgeSecs != 86400)  payload["max_age"]              = maxAgeSecs;
+        if (temporaryMembership)  payload["temporary_membership"] = true;
+        if (unique)               payload["unique"]               = true;
+
+        return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
+    }
+
     void Client::startGatewayPolling() {
         gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
                                                    boost::system::error_code ec) {

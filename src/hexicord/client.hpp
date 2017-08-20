@@ -784,6 +784,46 @@ namespace Hexicord {
          */
         nlohmann::json acceptInvite(const std::string& inviteCode);
 
+        /**
+         *  Get a list of invite objects (with invite metadata) for the channel.
+         *
+         *  Requires the 'MANAGE_CHANNELS' permission.
+         *
+         *  May throw APIError if invalid IDs specified or current user don't
+         *  have required permissions. Also may throw 
+         *  boost::system::system_error if client fails to connect 
+         *  to REST API server.
+         */
+        nlohmann::json getChannelInvites(uint64_t channelId);
+
+        /**
+         *  Create new invite for a channel.
+         *
+         *  Requires the CREATE_INSTANT_INVITE permission.
+         *
+         *  By default invite link is usable for 24 hours (86400 seconds), you
+         *  can pass maxAgeSecs parameter to override this. Pass 0 to create
+         *  invite with unlimited duration (it can be revoked using
+         *  \ref revokeInvite). You can also limit times invite can be used by
+         *  passing maxUses parameter.
+         *
+         *  You can also create invite link which give temporary membership.
+         *  User will be removed from guild when he will go offline and don't 
+         *  got a role.
+         *
+         *  By default this method tries to reuse similar invite if avaliable,
+         *  you can override this by passing unique = true.
+         *
+         *  This method throws APIError on any API error (for this method it can be
+         *  caused by invalid ID or missing permission).
+         *  In addition this method throws boost::system::system_error if REST API
+         *  server is not reachable.
+         */
+        nlohmann::json createInvite(uint64_t channelId, unsigned maxAgeSecs = 86400,
+                                    unsigned maxUses = 0,
+                                    bool temporaryMembership = false,
+                                    bool unique = false);
+
         /// @} REST_invites
         /// @} REST
 
