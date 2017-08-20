@@ -91,7 +91,7 @@ option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 
-find_package(Boost COMPONENTS system)
+find_package(Boost COMPONENTS system date_time)
 find_package(OpenSSL REQUIRED)
 
 
