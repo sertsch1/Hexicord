@@ -494,6 +494,67 @@ namespace Hexicord {
          */
         void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
 
+        /// \defgroup REST_reactions Reactions
+        /// Methods related to message reactions.
+        /// @{
+        
+        /**
+         *  Add reaction to message.
+         *
+         *  This method requires READ_MESSAGE_HISTORY permission and,
+         *  additionally, ADD_REACTIONS permissions if nobody else reacted
+         *  using this emoji.
+         *
+         *  May throw APIError if invalid IDs specified or current user don't
+         *  have required permissions. Also may throw 
+         *  boost::system::system_error if client fails to connect 
+         *  to REST API server.
+         *
+         *  \sa \ref removeReaction \ref getReactions
+         */
+        void addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId);
+
+        /**
+         *  Remove reaction from message.
+         *
+         *  By default this method removes current user's reaction, pass userId
+         *  to remove other user's reactions, however this requires
+         *  MANAGE_MESSAGES permission.
+         *
+         *  May throw APIError if invalid IDs specified or current user don't
+         *  have required permissions. Also may throw 
+         *  boost::system::system_error if client fails to connect 
+         *  to REST API server.
+         *
+         *  \sa \ref addReaction \ref getReactions
+         */
+        void removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId = 0);
+
+        /**
+         *  Get a list of users that reacted with this emoji.
+         *
+         *  May throw APIError if invalid IDs specified or current user don't
+         *  have required permissions. Also may throw 
+         *  boost::system::system_error if client fails to connect 
+         *  to REST API server.
+         *
+         *  \sa \ref addReaction \ref removeReaction
+         */
+        nlohmann::json getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId);
+
+        /**
+         *  Remove all reactions from message. Requires MANAGE_MESSAGES
+         *  permission.
+         *
+         *  May throw APIError if invalid IDs specified or current user don't
+         *  have required permissions. Also may throw 
+         *  boost::system::system_error if client fails to connect 
+         *  to REST API server.
+         */
+        void resetReactions(uint64_t channelId, uint64_t messageId);
+
+        /// @} REST_reactions
+
         /// @} REST_messages
         
         /**

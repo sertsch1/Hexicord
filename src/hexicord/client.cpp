@@ -378,6 +378,32 @@ namespace Hexicord {
                         {{ "messages", messageIds }});
     }
 
+    void Client::addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+        sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
+                                           "/messages/"  + std::to_string(messageId) +
+                                           "/reactions/" + std::to_string(emojiId)   +
+                                           "/@me");
+    }
+
+    void Client::removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId) {
+        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
+                                              "/messages/"  + std::to_string(messageId) +
+                                              "/reactions/" + std::to_string(emojiId)   +
+                                             (userId ? std::to_string(userId) : std::string("/@me")));
+    }
+
+    nlohmann::json Client::getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+        sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
+                                           "/messages/"  + std::to_string(messageId) +
+                                           "/reactions/" + std::to_string(emojiId));
+    }
+
+    void Client::resetReactions(uint64_t channelId, uint64_t messageId) {
+        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
+                                              "/messages/"  + std::to_string(messageId) +
+                                              "/reactions");
+    }
+
     nlohmann::json Client::getMe() {
         return sendRestRequest("GET", std::string("/users/@me"));
     }
