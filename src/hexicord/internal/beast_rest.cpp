@@ -62,7 +62,12 @@ namespace Hexicord {
     void BeastHTTPS::closeConnection() {
         boost::system::error_code ec;
         stream.shutdown(ec);
-        if (ec && ec != boost::asio::error::eof && ec != boost::asio::ssl::error::stream_truncated) {
+        if (ec && 
+            ec != boost::asio::error::eof && 
+            ec != boost::asio::ssl::error::stream_truncated &&
+            ec != boost::asio::error::broken_pipe &&
+            ec != boost::asio::error::connection_reset) {
+
             throw boost::system::system_error(ec);
         }
         stream.next_layer().close();

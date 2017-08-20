@@ -231,7 +231,10 @@ namespace Hexicord {
         try {
             gatewayConnection->sendMessage(jsonToVector(message));
         } catch (boost::system::system_error& excp) {
-            if (excp.code() == boost::asio::error::broken_pipe) { // unexpected disconnect
+            if (excp.code() == boost::asio::error::broken_pipe ||
+                excp.code() == boost::asio::error::connection_reset ||
+                excp.code() == boost::beast::websocket::error::closed) { // unexpected disconnect
+
                 disconnectFromGateway();
                 resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
             }

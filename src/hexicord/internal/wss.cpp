@@ -80,7 +80,12 @@ namespace Hexicord {
 
         boost::system::error_code ec;
         wsStream.close(reason, ec);
-        if (ec != boost::asio::ssl::error::stream_truncated) {
+        if (ec &&
+            ec != boost::asio::ssl::error::stream_truncated &&
+            ec != boost::asio::error::broken_pipe &&
+            ec != boost::asio::error::connection_reset &&
+            ec != boost::asio::error::eof) {
+
             throw boost::system::system_error(ec);
         }
 
