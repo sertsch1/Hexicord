@@ -393,9 +393,9 @@ namespace Hexicord {
     }
 
     nlohmann::json Client::getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
-        sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
-                                           "/messages/"  + std::to_string(messageId) +
-                                           "/reactions/" + std::to_string(emojiId));
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
+                                                  "/messages/"  + std::to_string(messageId) +
+                                                  "/reactions/" + std::to_string(emojiId));
     }
 
     void Client::resetReactions(uint64_t channelId, uint64_t messageId) {
