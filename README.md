@@ -1,6 +1,9 @@
 Hexicord
 =========
-[![Latest Release](https://img.shields.io/github/release/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/releases/latest) [![Discord server](https://img.shields.io/discord/342774887091535873.svg?style=flat-square)](https://discord.gg/4Y6Xaf4) [![Issues](https://img.shields.io/github/issues-raw/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/issues) [![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square")](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
+[![Latest Release](https://img.shields.io/github/release/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/releases/latest) 
+[![Discord server](https://img.shields.io/discord/342774887091535873.svg?style=flat-square)](https://discord.gg/4Y6Xaf4) 
+[![Issues](https://img.shields.io/github/issues-raw/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/issues) 
+[![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square")](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
 
 [Discord API](https://discordapp.com/developers/docs/intro) implementation using C++11 with boost libraries.
 
@@ -29,14 +32,15 @@ Hexicord
 * boost.date_time
 * OpenSSL 1.0.1+
 * boost.beast (submodule or system)
+* _(Optional)_ Doxygen, if you also want to build documentation
 
-**Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in specified range.
+**Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in 
+specified range.
 
 Following command should be enough on debian-based distros:
 ```
-# apt-get install cmake gcc libboost-dev libboost-date-time-dev libboost-system-dev libssl-dev
+# apt-get install cmake gcc doxygen libboost-dev libboost-date-time-dev libboost-system-dev libssl-dev
 ```
-
 
 #### Installation
 ```
@@ -53,7 +57,8 @@ $ make
 
 ### Usage
 
-Main class of library is `Hexicord::Client`, which maintains gateway connection, dispatches events and provides interface to REST API.
+Main class of library is `Hexicord::Client`, which maintains gateway connection, dispatches events and provides 
+interface to REST API.
 
 There is simple echo bot:
 ```cpp
@@ -77,7 +82,8 @@ int main() {
 
 ### Documentation
 
-Documentation is generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/) if `HEXICORD_DOCS` option is enabled (default if Doxygen found).
+Documentation is generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/) if `HEXICORD_DOCS` option is enabled 
+(default if Doxygen found).
 
 ```
 $ cmake . -DHEXICORD_DOCS=ON
@@ -94,7 +100,8 @@ Here is some of the ways that you can contribute:
 * Submit a bug report. We love hearing about broken things, so that we can fix them.
 * Provide feedback. Even simple questions about how things work or why they were done a certain way carries value.
 * Test code. Checkout `dev` branch, compile it and start trying to break stuff! :-)
-* Write code. Check issues marked with [**help wanted**](https://github.com/foxcpp/hexicord/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) tag. 
+* Write code. Check issues marked with 
+[**help wanted**](https://github.com/foxcpp/hexicord/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) tag. 
 
 ##### Code style
 In short: camelCase (snake_case for files), 4 spaces indent, { on same line.
