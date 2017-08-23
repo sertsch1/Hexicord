@@ -426,6 +426,10 @@ namespace Hexicord {
                         });
     }
 
+    void Client::triggerTypingIndicator(uint64_t channelId) {
+        sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/typing");
+    }
+
     nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,
                                        boost::optional<uint64_t> nonce) {
         if (text.size() > 2000) {

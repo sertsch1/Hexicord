@@ -549,6 +549,8 @@ namespace Hexicord {
         void addToGroupDm(uint64_t groupDmId, uint64_t userId,
                           const std::string& accessToken, const std::string& nick);
 
+        void triggerTypingIndicator(uint64_t channelId);
+
         /// @} Channel methods
         
         /**
