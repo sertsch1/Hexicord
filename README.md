@@ -3,7 +3,7 @@ Hexicord
 [![Latest Release](https://img.shields.io/github/release/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/releases/latest) 
 [![Discord server](https://img.shields.io/discord/342774887091535873.svg?style=flat-square)](https://discord.gg/4Y6Xaf4) 
 [![Issues](https://img.shields.io/github/issues-raw/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/issues) 
-[![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square")](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/foxcpp/Hexicord.svg?style=flat-square)](https://github.com/foxcpp/Hexicord/blob/master/LICENSE)
 
 [Discord API](https://discordapp.com/developers/docs/intro) implementation using C++11 with boost libraries.
 
