@@ -22,7 +22,8 @@
 #ifndef HEXICORD_PERMISSION_HPP
 #define HEXICORD_PERMISSION_HPP
 
-#include <hexicord/flags.hpp>
+#include <cstdint>      // uint64_t
+#include "flag.hpp"     // Hexicord::Flag
 
 /**
  *  \file permissions.hpp

@@ -25,6 +25,7 @@
 #include <utility>
 #include <boost/asio/io_service.hpp>
 #include <hexicord/event_dispatcher.hpp>
+#include <hexicord/permission.hpp>
 #include <hexicord/internal/wss.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/internal/beast_rest.hpp>
@@ -470,6 +471,60 @@ namespace Hexicord {
         void unpinMessage(uint64_t channelId, uint64_t messageId);
 
         /// @} REST_pins
+        
+        /**
+         *  Change existing or add new channel permission override for a кщду.
+         *  
+         *  Only usable for guild channels. Requires the 'MANAGE_ROLES' permission.
+         *
+         *  If you don't specify permission in either allow or deny parmeter it will
+         *  inherit global value (no override). Adding permission to both allow and
+         *  deny is not allowed and will throw APIError.
+         *
+         *  \note
+         *  Note that passing default-constructed value to both allow and deny will
+         *  not remove override (it will still exist, but have no effect). To
+         *  completely remove override you should use \ref deleteChannelPermissions.
+         *
+         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  permission. Also can throw boost::system::system_error if client can't
+         *  connect to REST API server.
+         */
+        void editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+                                        Permissions allow, Permissions deny);
+
+        /**
+         *  Change existing or add new channel permission override for a user.
+         *  
+         *  Only usable for guild channels. Requires the 'MANAGE_ROLES' permission.
+         *
+         *  If you don't specify permission in either allow or deny parmeter it will
+         *  inherit global value (no override). Adding permission to both allow and
+         *  deny is not allowed and will throw APIError.
+         *
+         *  \note
+         *  Note that passing default-constructed value to both allow and deny will
+         *  not remove override (it will still exist, but have no effect). To
+         *  completely remove override you should use \ref deleteChannelPermissions.
+         *
+         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  permission. Also can throw boost::system::system_error if client can't
+         *  connect to REST API server.
+         */
+        void editChannelUserPermissions(uint64_t channelId, uint64_t userId,
+                                        Permissions allow, Permissions deny);
+
+        /**
+         *  Delete a channel permission overwrite for a user or role in a channel. 
+         *  overrideId may be role ID or user ID, depending on override type.
+         *
+         *  Only usable for guild channels. Requires the 'MANAGE_ROLES' permission. 
+         *
+         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  permission. Also can throw boost::system::system_error if client can't
+         *  connect to REST API server.
+         */
+        void deleteChannelPermissions(uint64_t channelId, uint64_t overrideId);
 
         /// @} Channel methods
         

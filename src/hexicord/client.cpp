@@ -381,6 +381,35 @@ namespace Hexicord {
                                               "/pins/"      + std::to_string(messageId));
     }
 
+    void editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+                                    Permissions allow, Permissions deny) {
+
+        sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
+                                           "/permissions/" + std::to_string(userId),
+            {
+                { "allow", allow    },
+                { "deny",  deny     },
+                { "type",  "role"   }
+            });
+    }
+
+    void editChannelUserPermissions(uint64_t channelId, uint64_t userId,
+                                    Permissions allow, Permissions deny) {
+
+        sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
+                                           "/permissions/" + std::to_string(userId),
+            {
+                { "allow", allow    },
+                { "deny",  deny     },
+                { "type",  "member" }
+            });
+    }
+
+    void deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
+        sendRestRequest("DELETE", std::string("/channels/")   + std::to_string(channelId) +
+                                              "/permissions/" + std::to_string(overrideId));
+    }
+
     nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,
                                        boost::optional<uint64_t> nonce) {
         if (text.size() > 2000) {
