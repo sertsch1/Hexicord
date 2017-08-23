@@ -381,33 +381,49 @@ namespace Hexicord {
                                               "/pins/"      + std::to_string(messageId));
     }
 
-    void editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+    void Client::editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+                                    Permissions allow, Permissions deny) {
+
+        sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
+                                           "/permissions/" + std::to_string(roleId),
+            {
+                { "allow", int(allow) },
+                { "deny",  int(deny)  },
+                { "type",  "role"     }
+            });
+    }
+
+    void Client::editChannelUserPermissions(uint64_t channelId, uint64_t userId,
                                     Permissions allow, Permissions deny) {
 
         sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
                                            "/permissions/" + std::to_string(userId),
             {
-                { "allow", allow    },
-                { "deny",  deny     },
-                { "type",  "role"   }
+                { "allow", int(allow) },
+                { "deny",  int(deny)  },
+                { "type",  "member"   }
             });
     }
 
-    void editChannelUserPermissions(uint64_t channelId, uint64_t userId,
-                                    Permissions allow, Permissions deny) {
-
-        sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
-                                           "/permissions/" + std::to_string(userId),
-            {
-                { "allow", allow    },
-                { "deny",  deny     },
-                { "type",  "member" }
-            });
-    }
-
-    void deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
+    void Client::deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
         sendRestRequest("DELETE", std::string("/channels/")   + std::to_string(channelId) +
                                               "/permissions/" + std::to_string(overrideId));
+    }
+
+    void Client::kickFromGroupDm(uint64_t groupDmId, uint64_t userId) {
+        sendRestRequest("DELETE", std::string("/channels/")  + std::to_string(groupDmId) +
+                                              "/recipients/" + std::to_string(userId));
+    }
+
+    void Client::addToGroupDm(uint64_t groupDmId, uint64_t userId,
+                              const std::string& accessToken, const std::string& nick) {
+
+        sendRestRequest("PUT", std::string("/channels/")  + std::to_string(groupDmId) +
+                                           "/recipients/" + std::to_string(userId),
+                        {
+                            { "access_token", accessToken },
+                            { "nick",         nick        }
+                        });
     }
 
     nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,

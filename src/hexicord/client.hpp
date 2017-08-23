@@ -526,6 +526,29 @@ namespace Hexicord {
          */
         void deleteChannelPermissions(uint64_t channelId, uint64_t overrideId);
 
+        /**
+         *  Remove (kick) member from group DM.
+         *
+         *  May throw APIError if ID is invalid. Also can throw 
+         *  boost::system::system_error if client can't connect
+         *  to REST API server.
+         */
+        void kickFromGroupDm(uint64_t groupDmId, uint64_t userId);
+
+        /**
+         *  Add member to group DM.
+         *
+         *  You should pass access token of a user that has granted
+         *  your app the gdm.join scope and nickname in order
+         *  to add him.
+         *
+         *  May throw APIError if parameters is invalid. Also can throw 
+         *  boost::system::system_error if client can't connect
+         *  to REST API server.
+         */
+        void addToGroupDm(uint64_t groupDmId, uint64_t userId,
+                          const std::string& accessToken, const std::string& nick);
+
         /// @} Channel methods
         
         /**
