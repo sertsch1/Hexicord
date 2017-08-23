@@ -7,18 +7,16 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 # Allow to specify VERSION in project()
 cmake_policy(SET CMP0048 NEW)
 
-# Will be used later.
-#include(${PROJECT_SOURCE_DIR}/cmake/version_detect.cmake)
-set(HEXICORD_VERSION 0.0.0)
+# Using pure MAGIC to detect version from git tags
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_detect.cmake)
 
 project(Hexicord VERSION ${HEXICORD_VERSION})
 
-
 #------------------------------------------------------------------------------
-# Global building configuration (C++ standard, defines, warning flags, cotire).
+# Global building configuration (C++ standard, defines, warning flags).
 
 add_definitions(-DHEXICORD_VERSION="${HEXICORD_VERSION}" 
-                -DHEXICORD_GITHUB="https://github.com/HexwellC/Hexicord")
+                -DHEXICORD_GITHUB="https://github.com/foxcpp/Hexicord")
 
 # Generate compilation database for YouCompleteMe and stuff like clang-tidy.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -94,7 +92,6 @@ option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 find_package(Boost COMPONENTS system date_time)
 find_package(OpenSSL REQUIRED)
 
-
 #------------------------------------------------------------------------------
 # POSIX Threads
 
@@ -122,7 +119,6 @@ if(CMAKE_VERSION VERSION_LESS 3.1)
     include(cmake/cmake_cxx11_standard.cmake)
 endif()
 
-
 #------------------------------------------------------------------------------
 # Beast
 
@@ -144,9 +140,10 @@ elseif(CMAKE_VERSION VERSION_LESS 3.5)
     define_boost_target(beast)
 endif()
 
-
 #------------------------------------------------------------------------------
 # Library
+
+set(HEXICORD_DEPENDENCIES Threads::Threads Boost::beast Boost::system OpenSSL::SSL OpenSSL::Crypto)
 
 option(HEXICORD_STATIC "Build static library." ON )
 option(HEXICORD_SHARED "Build shared library." OFF)
@@ -162,7 +159,7 @@ if(HEXICORD_SHARED)
     add_library(hexicord SHARED ${HEXICORD_HEADERS} ${HEXICORD_SOURCES})
 endif()
 
-target_link_libraries(hexicord PUBLIC Threads::Threads Boost::beast Boost::system OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(hexicord PUBLIC ${HEXICORD_DEPENDENCIES})
 target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
