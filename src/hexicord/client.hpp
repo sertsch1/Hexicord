@@ -413,6 +413,43 @@ namespace Hexicord {
          */
         nlohmann::json getChannelMessage(uint64_t channelId, uint64_t messageId);
 
+        /// \defgroup REST_pins Pinned messages operations
+        /// Methods related to pinned messages.
+        /// @{
+        
+        /**
+         *  Returns JSON array of all pinned messages in channel
+         *  specified by channelId.
+         *
+         *  May throw APIError if ID is invalid and boost::system::system_error
+         *  if client can't connect to REST API server.
+         */
+        nlohmann::json getPinnedMessages(uint64_t channelId);
+
+        /**
+         *  Pin message messageId in channel channelId.
+         *
+         *  Requires MANAGE_MESSAGES permission.
+         *
+         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  permission. Also can throw boost::system::system_error if client can't
+         *  connect to REST API server.
+         */
+        void pinMessage(uint64_t channelId, uint64_t messageId);
+
+        /**
+         *  Unpin message messageId in channel channelId.
+         *
+         *  Requires MANAGE_MESSAGES permission.
+         *
+         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  permission. Also can throw boost::system::system_error if client can't
+         *  connect to REST API server.
+         */
+        void unpinMessage(uint64_t channelId, uint64_t messageId);
+
+        /// @} REST_pins
+
         /// @} Channel methods
         
         /**

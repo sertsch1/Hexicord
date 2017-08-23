@@ -344,6 +344,21 @@ namespace Hexicord {
                                "/messsages/" + std::to_string(messageId));
     }
 
+    nlohmann::json Client::getPinnedMessages(uint64_t channelId) {
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
+                                                  "/pins");
+    }
+
+    void Client::pinMessage(uint64_t channelId, uint64_t messageId) {
+        sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
+                                           "/pins/"      + std::to_string(messageId));
+    }
+
+    void Client::unpinMessage(uint64_t channelId, uint64_t messageId) {
+        sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
+                                              "/pins/"      + std::to_string(messageId));
+    }
+
     nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,
                                        boost::optional<uint64_t> nonce) {
         if (text.size() > 2000) {
