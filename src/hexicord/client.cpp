@@ -642,6 +642,11 @@ namespace Hexicord {
                 DEBUG_MSG("Gateway heartbeat answered.");
                 --unansweredHeartbeats;
                 break;
+            case GatewayOpCodes::Heartbeat:
+                DEBUG_MSG("Received heartbeat request.");
+                sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
+                ++unansweredHeartbeats;
+                break;
             case GatewayOpCodes::Reconnect:
                 DEBUG_MSG("Gateway asked us to reconnect...");
                 disconnectFromGateway();
