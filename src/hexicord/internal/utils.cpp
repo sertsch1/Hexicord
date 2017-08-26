@@ -172,4 +172,48 @@ namespace Hexicord { namespace Utils {
         }
         return resultStream.str();
     }
+
+    std::vector<std::string> split(const std::string& str, char delimiter) {
+        std::istringstream iss(str);
+        std::vector<std::string> result;
+
+        std::string buffer;
+        while (std::getline(iss, buffer, delimiter)) {
+            if (!buffer.empty()) {
+                result.push_back(buffer);
+            }
+        }
+        return result;
+    }
+
+    bool isNumber(const std::string& input) {
+        for (char ch : input) {
+            if (!::isdigit(ch)) return false;
+        }
+        return true;
+    }
+
+    std::string getRatelimitDomain(const std::string& path) {
+        std::vector<std::string> splittenPath = split(path, '/');
+
+        std::string ratelimitDomain;
+        bool notMajorEntity = false; // First snowflake everytime refers to major entityt
+                                     // which is part of ratelimit domain.
+        for (const std::string& part : splittenPath) {
+            ratelimitDomain += "/";
+            if ((part.size() >= 17 && part.size() <= 20 && isNumber(part)) ||
+                part == "@me") {
+
+                if (notMajorEntity) {
+                    ratelimitDomain += "{snowflake}";
+                } else {
+                    notMajorEntity = true;
+                    ratelimitDomain += part;
+                }
+            } else {
+                ratelimitDomain += part;
+            }
+        }
+        return ratelimitDomain;
+    }
 }} // namespace Hexicord::Utils

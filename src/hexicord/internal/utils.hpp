@@ -51,6 +51,15 @@ namespace Hexicord { namespace Utils {
     std::string base64Encode(const std::vector<uint8_t>& bytes);
 
     std::string urlEncode(const std::string& raw);
+
+    std::vector<std::string> split(const std::string& str, char delimiter);
+
+    bool isNumber(const std::string& input);
+
+    /**
+     * Extract part of URL that have "per-route" ratelimit.
+     */
+    std::string getRatelimitDomain(const std::string& path);
 }} // namespace Hexicord::Utils
 
 #endif // HEXICORD_UTILS_HPP
