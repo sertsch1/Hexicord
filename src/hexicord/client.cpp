@@ -203,6 +203,9 @@ namespace Hexicord {
         }
         request.headers.insert({ "Accept", "application/json" });
 
+        // Make sure we can do request without getting ratelimited.
+        ratelimitLock.down(Utils::getRatelimitDomain(endpoint), [this]() { ioService.run_one(); });
+
         REST::HTTPResponse response;
         try {
             DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint + queryString + " " + payload.dump());
@@ -221,7 +224,7 @@ namespace Hexicord {
             restConnection->connectionHeaders = std::move(prevHeaders);
             restConnection->open();
             
-            response = restConnection->request(request);
+            return sendRestRequest(method, endpoint, payload, query);
         }
 
         if (response.body.empty()) {
@@ -230,7 +233,16 @@ namespace Hexicord {
 
         nlohmann::json jsonResp = vectorToJson(response.body);
 
+        updateRatelimitsIfPresent(endpoint, response.headers);
+
         if (response.statusCode / 100 != 2) {
+            if (response.statusCode == 429) {
+                // Ratelimit semaphore got desync with server counter.
+                // Call to refershInfo above should fix it, and it will work fine
+                // (block until reset time) next time.
+                return sendRestRequest(method, endpoint, payload, query);
+            }
+
             DEBUG_MSG("Got non-2xx HTTP status code.");
             DEBUG_MSG(jsonResp.dump(4));
             int code = -1;
@@ -607,6 +619,21 @@ namespace Hexicord {
 
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
     }
+
+    void Client::updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers) {
+        auto remainingIt = headers.find("X-RateLimit-Remaining");
+        auto limitIt     = headers.find("X-RateLimit-Limit");
+        auto resetIt     = headers.find("X-RateLimit-Reset");
+
+        unsigned remaining  =  remainingIt  !=  headers.end() ? std::stoi(remainingIt->second)  : 0;
+        unsigned limit      =  limitIt      !=  headers.end() ? std::stoi(limitIt->second)      : 0;
+        time_t reset        =  resetIt      !=  headers.end() ? std::stoll(resetIt->second)     : 0;
+
+        if (remaining && limit && reset) {
+            ratelimitLock.refreshInfo(Utils::getRatelimitDomain(endpoint), remaining, limit, reset);
+        }
+    }
+
 
     void Client::startGatewayPolling() {
         gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,

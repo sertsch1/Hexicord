@@ -29,6 +29,7 @@
 #include <hexicord/internal/wss.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/internal/beast_rest.hpp>
+#include <hexicord/ratelimit_lock.hpp>
 
 /**
  *  \file client.hpp
@@ -988,6 +989,8 @@ namespace Hexicord {
          *  Events dispatcher used to dispatch gateway events.
          */
         EventDispatcher eventDispatcher;
+
+        RatelimitLock ratelimitLock;
         
         /**
          *  Used authorization token.
@@ -1040,6 +1043,7 @@ private:
             return std::vector<uint8_t>(dump.begin(), dump.end());
         }
 
+        void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
         void startGatewayPolling();
         void startGatewayHeartbeat();
 
