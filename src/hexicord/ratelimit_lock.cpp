@@ -48,7 +48,7 @@ void Hexicord::RatelimitLock::down(const std::string& route, std::function<void(
                   std::to_string(routeInfo.resetTime));
         while (time(nullptr) <= routeInfo.resetTime) {
             busyWaiter();
-            std::this_thread::sleep_for(std::chrono::milliseconds(500)); 
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
         }
     }
 }
