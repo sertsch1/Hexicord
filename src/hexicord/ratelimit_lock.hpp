@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include <deque>
 
 namespace Hexicord
 {
@@ -56,13 +57,19 @@ namespace Hexicord
                          time_t   resetTime);
     private:
         struct RatelimitInfo {
+            std::string route;
+
             unsigned remaining;
             unsigned total;
             time_t resetTime;
         };
 
-        std::unordered_map<std::string, RatelimitInfo> ratelimits;
+        // I need a queue to remove oldest information and 
+        // hashmap to provide fast key-indexing.
+
+        std::deque<RatelimitInfo> queue;
+        std::unordered_map<std::string, decltype(queue)::iterator> ratelimitPointers;
     };
-} /* Hexicord */ 
+} // namespace Hexicord
 
 #endif // HEXICORD_RATELIMIT_LOCK_HPP
