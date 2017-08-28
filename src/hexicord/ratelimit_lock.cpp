@@ -29,7 +29,7 @@ time_t Hexicord::RatelimitLock::resetTime(const std::string& route) {
     return it != ratelimitPointers.end() ? it->second->resetTime : -1;
 }
 
-void Hexicord::RatelimitLock::down(const std::string& route, std::function<void()> busyWaiter) {
+void Hexicord::RatelimitLock::down(const std::string& route, std::function<void(time_t)> busyWaiter) {
     auto it = ratelimitPointers.find(route);
 
     // We can't predict limit hit in this case, so assume we don't hit it.
@@ -47,7 +47,7 @@ void Hexicord::RatelimitLock::down(const std::string& route, std::function<void(
         DEBUG_MSG(std::string("Ratelimit hit for route ") + route + ", blocking until " +
                   std::to_string(routeInfo.resetTime));
         while (time(nullptr) <= routeInfo.resetTime) {
-            busyWaiter();
+            busyWaiter(routeInfo.resetTime - time(nullptr));
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
         }
     }

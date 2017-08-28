@@ -20,6 +20,7 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+#include <thread>
 #include <hexicord/client.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <hexicord/internal/utils.hpp>
@@ -204,7 +205,7 @@ namespace Hexicord {
         request.headers.insert({ "Accept", "application/json" });
 
         // Make sure we can do request without getting ratelimited.
-        ratelimitLock.down(Utils::getRatelimitDomain(endpoint), [this]() { ioService.run_one(); });
+        ratelimitLock.down(Utils::getRatelimitDomain(endpoint), [this](time_t maxTime) { this->waitWithHeartbeat(maxTime); });
 
         REST::HTTPResponse response;
         try {
@@ -693,22 +694,44 @@ namespace Hexicord {
     }
 
     void Client::startGatewayHeartbeat() {
+        heartbeatTimer.cancel();
         heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
         heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
             if (ec == boost::asio::error::operation_aborted) return;
             if (!heartbeat) return;
 
-            if (unansweredHeartbeats >= 2) {
-                DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
-                disconnectFromGateway(5000);
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-            }
-
-            DEBUG_MSG("Gateway heartbeat sent.");
-            sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-            ++unansweredHeartbeats;
+            sendHeartbeat();
 
             startGatewayHeartbeat();
         });
+    }
+
+    void Client::waitWithHeartbeat(time_t maxTime) {
+        time_t maxWaitMs = heartbeatTimer.expires_from_now().total_milliseconds();
+
+
+        if (maxTime * 1000 > maxWaitMs) {
+            // to avoid interference with async timer.
+            heartbeatTimer.cancel();
+            heartbeat = false;
+
+            sendHeartbeat();
+
+            startGatewayHeartbeat();
+        } else {
+            std::this_thread::sleep_for(std::chrono::seconds(maxTime));
+        }
+    }
+
+    void Client::sendHeartbeat() {
+        if (unansweredHeartbeats >= 2) {
+            DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
+            disconnectFromGateway(5000);
+            resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
+        }
+
+        DEBUG_MSG("Gateway heartbeat sent.");
+        sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
+        ++unansweredHeartbeats;
     }
 } // namespace Hexicord
