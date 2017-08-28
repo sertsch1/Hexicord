@@ -29,7 +29,10 @@
 #include <hexicord/internal/wss.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/internal/beast_rest.hpp>
-#include <hexicord/ratelimit_lock.hpp>
+
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
+    #include <hexicord/ratelimit_lock.hpp>
+#endif
 
 /**
  *  \file client.hpp
@@ -990,7 +993,9 @@ namespace Hexicord {
          */
         EventDispatcher eventDispatcher;
 
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION
         RatelimitLock ratelimitLock;
+#endif
         
         /**
          *  Used authorization token.
@@ -1043,7 +1048,9 @@ private:
             return std::vector<uint8_t>(dump.begin(), dump.end());
         }
 
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
         void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
+#endif 
         void startGatewayPolling();
         void startGatewayHeartbeat();
 

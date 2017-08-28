@@ -204,9 +204,11 @@ namespace Hexicord {
         }
         request.headers.insert({ "Accept", "application/json" });
 
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
         // Make sure we can do request without getting ratelimited.
         ratelimitLock.down(Utils::getRatelimitDomain(endpoint),
                            [this](time_t maxTime) { this->waitWithHeartbeat(maxTime * 1000); });
+#endif
 
         REST::HTTPResponse response;
         try {
@@ -235,7 +237,9 @@ namespace Hexicord {
 
         nlohmann::json jsonResp = vectorToJson(response.body);
 
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION
         updateRatelimitsIfPresent(endpoint, response.headers);
+#endif
 
         if (response.statusCode / 100 != 2) {
             if (response.statusCode == 429) {
@@ -620,6 +624,7 @@ namespace Hexicord {
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
     }
 
+#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
     void Client::updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers) {
         auto remainingIt = headers.find("X-RateLimit-Remaining");
         auto limitIt     = headers.find("X-RateLimit-Limit");
@@ -633,6 +638,7 @@ namespace Hexicord {
             ratelimitLock.refreshInfo(Utils::getRatelimitDomain(endpoint), remaining, limit, reset);
         }
     }
+#endif // HEXICORD_RATELIMIT_NO_PREDICTION
 
 
     void Client::startGatewayPolling() {
