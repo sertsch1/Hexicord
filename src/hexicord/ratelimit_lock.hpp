@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
-#include <deque>
+#include <list>
 
 namespace Hexicord
 {
@@ -70,7 +70,7 @@ namespace Hexicord
         // I need a queue to remove oldest information and 
         // hashmap to provide fast key-indexing.
 
-        std::deque<RatelimitInfo> queue;
+        std::list<RatelimitInfo> queue;
         std::unordered_map<std::string, decltype(queue)::iterator> ratelimitPointers;
     };
 } // namespace Hexicord

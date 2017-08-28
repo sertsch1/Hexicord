@@ -5,7 +5,7 @@
 
 #ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
     #include <iostream>
-    #define DEBUG_MSG(msg) do { std::cerr << "ratelimit_lock.cpp:" << __LINE__ << " " << (msg) << '\n'; } while (false)
+    #define DEBUG_MSG(msg) do { std::cerr << "ratelimit_lock.cpp:" << __LINE__ << "\t" << (msg) << '\n'; } while (false)
 #else
     #define DEBUG_MSG(msg)
 #endif
@@ -33,7 +33,10 @@ void Hexicord::RatelimitLock::down(const std::string& route, std::function<void(
     auto it = ratelimitPointers.find(route);
 
     // We can't predict limit hit in this case, so assume we don't hit it.
-    if (it == ratelimitPointers.end()) return;
+    if (it == ratelimitPointers.end()) {
+        DEBUG_MSG(std::string("Can't predict hit for route (no information) ") + route);
+        return;
+    }
 
     RatelimitInfo& routeInfo = *it->second;
 
@@ -44,12 +47,21 @@ void Hexicord::RatelimitLock::down(const std::string& route, std::function<void(
               ", remaining=" + std::to_string(routeInfo.remaining));
 
     if (routeInfo.remaining == 0) {
+        if (routeInfo.resetTime <= std::time(nullptr)) {
+            DEBUG_MSG(std::string("Ratelimit information for route ") + route + " is outdated, can't predict hit!");
+            queue.erase(it->second);
+            ratelimitPointers.erase(it);
+            return;
+        }
+
         DEBUG_MSG(std::string("Ratelimit hit for route ") + route + ", blocking until " +
                   std::to_string(routeInfo.resetTime));
-        while (time(nullptr) <= routeInfo.resetTime) {
-            busyWaiter(routeInfo.resetTime - time(nullptr));
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
-        }
+
+        busyWaiter(routeInfo.resetTime - std::time(nullptr));
+
+        // we also erase information after, so it can't be outdated.
+        queue.erase(it->second);
+        ratelimitPointers.erase(it);
     }
 }
 
@@ -65,7 +77,7 @@ void Hexicord::RatelimitLock::refreshInfo(const std::string& route,
 
     auto ratelimitItIt = ratelimitPointers.find(route);
     if (ratelimitItIt != ratelimitPointers.end()) {
-        *ratelimitItIt->second = { route, remaining, total, resetTime };
+        queue.push_back({ route, remaining, total, resetTime });
     } else {
         if (queue.size() == HEXICORD_RATELIMIT_CACHE_SIZE) {
             ratelimitPointers.erase(ratelimitPointers.find(queue.front().route));
@@ -77,6 +89,6 @@ void Hexicord::RatelimitLock::refreshInfo(const std::string& route,
         }
 
         queue.push_back({ route, remaining, total, resetTime });
-        ratelimitPointers.insert({route, queue.end() - 1 });
+        ratelimitPointers.insert({route, --queue.end() });
     }
 }

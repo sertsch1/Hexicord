@@ -205,7 +205,8 @@ namespace Hexicord {
         request.headers.insert({ "Accept", "application/json" });
 
         // Make sure we can do request without getting ratelimited.
-        ratelimitLock.down(Utils::getRatelimitDomain(endpoint), [this](time_t maxTime) { this->waitWithHeartbeat(maxTime); });
+        ratelimitLock.down(Utils::getRatelimitDomain(endpoint),
+                           [this](time_t maxTime) { this->waitWithHeartbeat(maxTime * 1000); });
 
         REST::HTTPResponse response;
         try {
@@ -238,9 +239,7 @@ namespace Hexicord {
 
         if (response.statusCode / 100 != 2) {
             if (response.statusCode == 429) {
-                // Ratelimit semaphore got desync with server counter.
-                // Call to refershInfo above should fix it, and it will work fine
-                // (block until reset time) next time.
+                waitWithHeartbeat(jsonResp["Retry-After"].get<unsigned>());
                 return sendRestRequest(method, endpoint, payload, query);
             }
 
@@ -706,20 +705,29 @@ namespace Hexicord {
         });
     }
 
-    void Client::waitWithHeartbeat(time_t maxTime) {
-        time_t maxWaitMs = heartbeatTimer.expires_from_now().total_milliseconds();
+    void Client::waitWithHeartbeat(unsigned maxTimeMs) {
+        unsigned msUntilHeartbeat = heartbeatTimer.expires_from_now().total_milliseconds();
 
+        DEBUG_MSG(std::string("Waiting for ") + std::to_string(maxTimeMs));
+        DEBUG_MSG(std::string("Miliiseconds until heartbeat: ") + std::to_string(msUntilHeartbeat));
 
-        if (maxTime * 1000 > maxWaitMs) {
-            // to avoid interference with async timer.
-            heartbeatTimer.cancel();
-            heartbeat = false;
+        assert(maxTimeMs > 0);
+        assert(msUntilHeartbeat > 0);
+
+        if (maxTimeMs == 0) return;
+
+        // to avoid interference with async timer.
+        heartbeatTimer.cancel();
+        heartbeat = false;
+
+        if (maxTimeMs > msUntilHeartbeat) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(maxTimeMs - msUntilHeartbeat));
 
             sendHeartbeat();
 
             startGatewayHeartbeat();
         } else {
-            std::this_thread::sleep_for(std::chrono::seconds(maxTime));
+            std::this_thread::sleep_for(std::chrono::milliseconds(maxTimeMs));
         }
     }
 
