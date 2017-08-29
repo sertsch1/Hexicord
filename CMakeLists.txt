@@ -4,13 +4,40 @@ cmake_minimum_required(VERSION 3.0)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 
-# Allow to specify VERSION in project()
-cmake_policy(SET CMP0048 NEW)
+if(DEFINED HEXICORD_VERSION)
+    message("Skipping version detection using Git tags...")
+    set(HEXICORD_SEMVER "${HEXICORD_VERSION}" PARENT_SCOPE)
+else()
+    find_package(Git QUIET)
+    if(GIT_EXECUTABLE)
+        execute_process(
+                COMMAND           "${GIT_EXECUTABLE} status"
+                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+                RESULT_VARIABLE   git_status_result
+                OUTPUT_VARIABLE   git_status_output
+                ERROR_VARIABLE    git_status_error
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_STRIP_TRAILING_WHITESPACE
+        )
 
-# Using pure MAGIC to detect version from git tags
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_detect.cmake)
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+            include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_from_git.cmake)
+            version_from_git(GIT_EXECUTABLE ${GIT_EXECUTABLE} 
+                             INCLUDE_HASH ON)
+            
+            set(HEXICORD_DETECTED_VERSION ${VERSION})
+            set(HEXICORD_SEMVER  "${SEMVER}")
+        else()
+            message(WARNING "Setting version to default string, because building outside of Git repository, please specify version by setting HEXICORD_VERSION CMake variable.")
+        endif()
+    else()
+        message(WARNING "Setting version to default string, because Git executable not found, please specify version by setting HEXICORD_VERSION CMake variable.")
+    endif()
+endif()
 
-project(Hexicord VERSION ${HEXICORD_VERSION})
+project(HEXICORD VERSION ${HEXICORD_DETECTED_VERSION})
+
+message(STATUS "Configuring Hexicord ${HEXICORD_VERSION}")
 
 #------------------------------------------------------------------------------
 # Global building configuration (C++ standard, defines, warning flags).
@@ -139,6 +166,29 @@ if(NOT Boost_beast_FOUND)
 elseif(CMAKE_VERSION VERSION_LESS 3.5)
     define_boost_target(beast)
 endif()
+
+
+#------------------------------------------------------------------------------
+# Library Configuration
+
+macro(hexicord_config type option_name docstring default_value)
+    set(${option_name} ${default_value} CACHE type ${docstring})
+    message(STATUS "Hexicord configuration: ${option_name} = ${default_value}")
+endmacro()
+
+hexicord_config(BOOL HEXICORD_DEBUG_LOG          "Master switch for debug messages. Warning: VERY VERBOSE."  OFF)
+
+hexicord_config(BOOL HEXICORD_DEBUG_LOG_CLIENT       "Debug logging for Hexicord::Client."        ON)
+hexicord_config(BOOL HEXICORD_DEBUG_LOG_RATELIITLOCK "Debug logging for Hexicord::RatelimitLock." ON)
+
+# Ratelimits handling
+hexicord_config(BOOL HEXICORD_RATELIMIT_PREDICTION   "Attempt to predict and avoid ratelimit hit. Experimental."    OFF)
+hexicord_config(BOOL HEXICORD_RATELIMIT_HIT_AS_ERROR "Throw exception on ratelimit hit instead of silent retrying." OFF)
+
+hexicord_config(STRING HEXICORD_RATELIMIT_CACHE_SIZE   "Limit count of entries with information about ratelimits per route" "512")
+
+configure_file(${PROJECT_SOURCE_DIR}/src/hexicord/config.hpp.in
+               ${PROJECT_SOURCE_DIR}/src/hexicord/config.hpp @ONLY)
 
 #------------------------------------------------------------------------------
 # Library
