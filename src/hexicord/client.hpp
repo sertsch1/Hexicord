@@ -29,8 +29,8 @@
 #include <hexicord/internal/wss.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/internal/beast_rest.hpp>
-
-#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
+#include <hexicord/config.hpp>
+#ifdef HEXICORD_RATELIMIT_PREDICTION 
     #include <hexicord/ratelimit_lock.hpp>
 #endif
 
@@ -993,7 +993,7 @@ namespace Hexicord {
          */
         EventDispatcher eventDispatcher;
 
-#ifndef HEXICORD_RATELIMIT_NO_PREDICTION
+#ifdef HEXICORD_RATELIMIT_PREDICTION
         RatelimitLock ratelimitLock;
 #endif
         
@@ -1048,7 +1048,7 @@ private:
             return std::vector<uint8_t>(dump.begin(), dump.end());
         }
 
-#ifndef HEXICORD_RATELIMIT_NO_PREDICTION 
+#ifdef HEXICORD_RATELIMIT_PREDICTION 
         void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
 #endif 
         void startGatewayPolling();
