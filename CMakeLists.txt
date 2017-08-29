@@ -42,9 +42,6 @@ message(STATUS "Configuring Hexicord ${HEXICORD_VERSION}")
 #------------------------------------------------------------------------------
 # Global building configuration (C++ standard, defines, warning flags).
 
-add_definitions(-DHEXICORD_VERSION="${HEXICORD_VERSION}" 
-                -DHEXICORD_GITHUB="https://github.com/foxcpp/Hexicord")
-
 # Generate compilation database for YouCompleteMe and stuff like clang-tidy.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -172,11 +169,13 @@ endif()
 # Library Configuration
 
 macro(hexicord_config type option_name docstring default_value)
-    set(${option_name} ${default_value} CACHE type ${docstring})
+    set(${option_name} ${default_value} CACHE ${type} ${docstring})
     message(STATUS "Hexicord configuration: ${option_name} = ${default_value}")
 endmacro()
 
-hexicord_config(BOOL HEXICORD_DEBUG_LOG          "Master switch for debug messages. Warning: VERY VERBOSE."  OFF)
+hexicord_config(BOOL HEXICORD_GITHUB "URL to send in User-Agent" "https://github.com/foxcpp/Hexicord")
+
+hexicord_config(BOOL HEXICORD_DEBUG_LOG "Master switch for debug messages. Warning: VERY VERBOSE."  OFF)
 
 hexicord_config(BOOL HEXICORD_DEBUG_LOG_CLIENT       "Debug logging for Hexicord::Client."        ON)
 hexicord_config(BOOL HEXICORD_DEBUG_LOG_RATELIITLOCK "Debug logging for Hexicord::RatelimitLock." ON)
@@ -187,8 +186,8 @@ hexicord_config(BOOL HEXICORD_RATELIMIT_HIT_AS_ERROR "Throw exception on ratelim
 
 hexicord_config(STRING HEXICORD_RATELIMIT_CACHE_SIZE   "Limit count of entries with information about ratelimits per route" "512")
 
-configure_file(${PROJECT_SOURCE_DIR}/src/hexicord/config.hpp.in
-               ${PROJECT_SOURCE_DIR}/src/hexicord/config.hpp @ONLY)
+configure_file(${HEXICORD_SOURCE_DIR}/src/hexicord/config.hpp.in
+               ${HEXICORD_BINARY_DIR}/hexicord/config.hpp @ONLY)
 
 #------------------------------------------------------------------------------
 # Library
@@ -210,7 +209,8 @@ if(HEXICORD_SHARED)
 endif()
 
 target_link_libraries(hexicord PUBLIC ${HEXICORD_DEPENDENCIES})
-target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src)
+# to access config.hpp
+target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_BINARY_DIR})
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
 # NOT SUPPORTED until we remove references to beast from headers.

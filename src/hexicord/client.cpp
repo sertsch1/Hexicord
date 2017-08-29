@@ -58,8 +58,7 @@ namespace Hexicord {
 
         // It's strange but Discord API requires "DiscordBot" user-agent for any connections
         // including non-bots. Referring to https://discordapp.com/developers/docs/reference#user-agent
-        restConnection->connectionHeaders.insert({ "User-Agent", 
-                "DiscordBot (" HEXICORD_GITHUB ", " HEXICORD_VERSION ")" });
+        restConnection->connectionHeaders.insert({ "User-Agent", "DiscordBot (" HEXICORD_GITHUB ", " HEXICORD_VERSION ")" });
     }
 
     Client::~Client() {

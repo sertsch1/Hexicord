@@ -47,6 +47,5 @@ install_manifest.txt
 compile_commands.json
 ## Built stuff
 /*build*
-src/hexicord/config.hpp
 ## Something else
 /doc/
