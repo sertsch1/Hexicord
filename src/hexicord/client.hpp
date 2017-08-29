@@ -38,28 +38,6 @@
 
 namespace Hexicord {
     /**
-     *  Thrown if REST API error occurs.
-     */
-    struct APIError : public std::logic_error {
-        APIError(const std::string& message, int apiCode = -1, int httpCode = -1) 
-            // Build message in format "API error: {message} (apiCode={apiCode}, httpCode={httpCode})"
-            : std::logic_error(message + " (apiCode=" + std::to_string(apiCode) + ", httpCode=" + std::to_string(httpCode) + ")")
-            , apiCode(apiCode)
-            , httpCode(httpCode) {}
-
-        /**
-         *  Contains error message as sent by API.
-         */
-        const std::string message;
-
-        /**
-         *  Contains API error code and HTTP status code.
-         *  May be -1 if one is not present.
-         */
-        const int apiCode, httpCode;
-    };
-
-    /**
      *  Thrown if gateway API error occurs (disconnect, OP 9 Invalid Session, unexcepted message, etc).
      */
     struct GatewayError : public std::runtime_error {
@@ -296,7 +274,7 @@ namespace Hexicord {
          *  \param payload   JSON payload, pass empty object (default) if none.
          *  \param query     GET request query.
          *
-         *  \throws APIError on API error.
+         *  \throws RESTError on API error.
          *  \throws boost::system::system_error on connection problem.
          *
          *  \sa \ref sendGatewayMsg
@@ -345,7 +323,7 @@ namespace Hexicord {
         /**
          *  Get a channel by ID. Returns a guild channel or dm channel object.
          *
-         *  \throws APIError on API error (invalid channel).
+         *  \throws RESTError on API error (invalid channel).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getChannel(uint64_t channelId);
@@ -364,10 +342,10 @@ namespace Hexicord {
          *                    (to 128000 for VIP servers).
          *  \param usersLimit The user limit for voice channels; 0-99, 0 means no limit.
          *
-         *  \throws APIError on API error (invalid channel ID, missing permissions).
-         *  \throws std::invalid_argument if no arguments other than channelId passed,
+         *  \throws RESTError on API error (invalid channel ID, missing permissions).
+         *  \throws InvalidParameter if no arguments other than channelId passed,
          *          also thrown when both bitrate and topic passed.
-         *  \throws std::out_of_range if arguments out of range.
+         *  \throws InvalidParameter if arguments out of range.
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Guild channel object.
@@ -385,7 +363,7 @@ namespace Hexicord {
          *  Requires the MANAGE_CHANNELS permission for guild.
          *  Fires ChannelDelete event.
          *
-         *  \throws APIError on API error (invalid channel ID, missing permissions).
+         *  \throws RESTError on API error (invalid channel ID, missing permissions).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Channel object.
@@ -411,8 +389,8 @@ namespace Hexicord {
          *  \param mode             See \ref GetMsgMode. Default is After.
          *  \param limit            Max number of messages to return (1-100). Default is 50.
          *
-         *  \throws APIError on API error (invalid ID, missing permissions).
-         *  \throws std::out_of_range if limit is bigger than 100 or equals to 0.
+         *  \throws RESTError on API error (invalid ID, missing permissions).
+         *  \throws InvalidParameter if limit is bigger than 100 or equals to 0.
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Array of message objects.
@@ -428,7 +406,7 @@ namespace Hexicord {
          *  \param channelId    Snowflake ID of target channel.
          *  \param messageId    Snowflake ID of target message.
          *
-         *  \throws APIError on API error (invalid ID, missing permission).
+         *  \throws RESTError on API error (invalid ID, missing permission).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Message object.
@@ -443,7 +421,7 @@ namespace Hexicord {
          *  Returns JSON array of all pinned messages in channel
          *  specified by channelId.
          *
-         *  May throw APIError if ID is invalid and boost::system::system_error
+         *  May throw RESTError if ID is invalid and boost::system::system_error
          *  if client can't connect to REST API server.
          */
         nlohmann::json getPinnedMessages(uint64_t channelId);
@@ -453,7 +431,7 @@ namespace Hexicord {
          *
          *  Requires MANAGE_MESSAGES permission.
          *
-         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  May throw RESTError if ID is invalid or you don't have MANAGE_MESSAGES
          *  permission. Also can throw boost::system::system_error if client can't
          *  connect to REST API server.
          */
@@ -464,7 +442,7 @@ namespace Hexicord {
          *
          *  Requires MANAGE_MESSAGES permission.
          *
-         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  May throw RESTError if ID is invalid or you don't have MANAGE_MESSAGES
          *  permission. Also can throw boost::system::system_error if client can't
          *  connect to REST API server.
          */
@@ -479,14 +457,14 @@ namespace Hexicord {
          *
          *  If you don't specify permission in either allow or deny parmeter it will
          *  inherit global value (no override). Adding permission to both allow and
-         *  deny is not allowed and will throw APIError.
+         *  deny is not allowed and will throw RESTError.
          *
          *  \note
          *  Note that passing default-constructed value to both allow and deny will
          *  not remove override (it will still exist, but have no effect). To
          *  completely remove override you should use \ref deleteChannelPermissions.
          *
-         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  May throw RESTError if ID is invalid or you don't have MANAGE_MESSAGES
          *  permission. Also can throw boost::system::system_error if client can't
          *  connect to REST API server.
          */
@@ -500,14 +478,14 @@ namespace Hexicord {
          *
          *  If you don't specify permission in either allow or deny parmeter it will
          *  inherit global value (no override). Adding permission to both allow and
-         *  deny is not allowed and will throw APIError.
+         *  deny is not allowed and will throw RESTError.
          *
          *  \note
          *  Note that passing default-constructed value to both allow and deny will
          *  not remove override (it will still exist, but have no effect). To
          *  completely remove override you should use \ref deleteChannelPermissions.
          *
-         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  May throw RESTError if ID is invalid or you don't have MANAGE_MESSAGES
          *  permission. Also can throw boost::system::system_error if client can't
          *  connect to REST API server.
          */
@@ -520,7 +498,7 @@ namespace Hexicord {
          *
          *  Only usable for guild channels. Requires the 'MANAGE_ROLES' permission. 
          *
-         *  May throw APIError if ID is invalid or you don't have MANAGE_MESSAGES
+         *  May throw RESTError if ID is invalid or you don't have MANAGE_MESSAGES
          *  permission. Also can throw boost::system::system_error if client can't
          *  connect to REST API server.
          */
@@ -529,7 +507,7 @@ namespace Hexicord {
         /**
          *  Remove (kick) member from group DM.
          *
-         *  May throw APIError if ID is invalid. Also can throw 
+         *  May throw RESTError if ID is invalid. Also can throw 
          *  boost::system::system_error if client can't connect
          *  to REST API server.
          */
@@ -542,7 +520,7 @@ namespace Hexicord {
          *  your app the gdm.join scope and nickname in order
          *  to add him.
          *
-         *  May throw APIError if parameters is invalid. Also can throw 
+         *  May throw RESTError if parameters is invalid. Also can throw 
          *  boost::system::system_error if client can't connect
          *  to REST API server.
          */
@@ -572,8 +550,8 @@ namespace Hexicord {
          *  \param tts          Set whatever this is TTS message. Default is false.
          *  \param nonce        Nonce that can be used for optimistic message sending. Default is none.
          *
-         *  \throws APIError on API error (missing permission, invalid ID).
-         *  \throws std::out_of_range if text is bigger than 2000 characters.
+         *  \throws RESTError on API error (missing permission, invalid ID).
+         *  \throws InvalidParameter if text is bigger than 2000 characters.
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Message object that represents sent message.
@@ -591,8 +569,8 @@ namespace Hexicord {
          *  \param messageId    Snowflake ID of target message.
          *  \param text         New text.
          *
-         *  \throws APIError on API error (editing other user's messages, invalid ID).
-         *  \throws std::out_of_range if text is bigger than 2000 characters.
+         *  \throws RESTError on API error (editing other user's messages, invalid ID).
+         *  \throws InvalidParameter if text is bigger than 2000 characters.
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Message object.
@@ -609,7 +587,7 @@ namespace Hexicord {
          *  \param channelId    Snowflake ID of target channel.
          *  \param messageId    Snowflake ID of target message.
          *
-         *  \throws APIError on API error (missing permission, invalid ID).
+         *  \throws RESTError on API error (missing permission, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         void deleteMessage(uint64_t channelId, uint64_t messageId);
@@ -627,7 +605,7 @@ namespace Hexicord {
          *  \param channelId    Snowflake ID of target channel.
          *  \param messageIds   Vector of message IDs.
          *
-         *  \throws APIError on API error (missing permission, invalid ID, older than 2 weeks).
+         *  \throws RESTError on API error (missing permission, invalid ID, older than 2 weeks).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
@@ -643,7 +621,7 @@ namespace Hexicord {
          *  additionally, ADD_REACTIONS permissions if nobody else reacted
          *  using this emoji.
          *
-         *  May throw APIError if invalid IDs specified or current user don't
+         *  May throw RESTError if invalid IDs specified or current user don't
          *  have required permissions. Also may throw 
          *  boost::system::system_error if client fails to connect 
          *  to REST API server.
@@ -659,7 +637,7 @@ namespace Hexicord {
          *  to remove other user's reactions, however this requires
          *  MANAGE_MESSAGES permission.
          *
-         *  May throw APIError if invalid IDs specified or current user don't
+         *  May throw RESTError if invalid IDs specified or current user don't
          *  have required permissions. Also may throw 
          *  boost::system::system_error if client fails to connect 
          *  to REST API server.
@@ -671,7 +649,7 @@ namespace Hexicord {
         /**
          *  Get a list of users that reacted with this emoji.
          *
-         *  May throw APIError if invalid IDs specified or current user don't
+         *  May throw RESTError if invalid IDs specified or current user don't
          *  have required permissions. Also may throw 
          *  boost::system::system_error if client fails to connect 
          *  to REST API server.
@@ -684,7 +662,7 @@ namespace Hexicord {
          *  Remove all reactions from message. Requires MANAGE_MESSAGES
          *  permission.
          *
-         *  May throw APIError if invalid IDs specified or current user don't
+         *  May throw RESTError if invalid IDs specified or current user don't
          *  have required permissions. Also may throw 
          *  boost::system::system_error if client fails to connect 
          *  to REST API server.
@@ -710,7 +688,7 @@ namespace Hexicord {
          *  the object without an email, and optionally the email scope,
          *  which returns the object with an email.
          *
-         *  \throws APIError on API error (missing permissions).
+         *  \throws RESTError on API error (missing permissions).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getMe();
@@ -720,7 +698,7 @@ namespace Hexicord {
          *
          *  \param id   User snowflake ID.
          *
-         *  \throws APIError on API error (???).
+         *  \throws RESTError on API error (???).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getUser(uint64_t id);
@@ -746,10 +724,10 @@ namespace Hexicord {
          *  encounter them. It's important to properly handle all error 
          *  messages returned by Discord when editing or updating names.
          *
-         *  \throws std::out_of_range if name.size() is 1 or > 32.
-         *  \throws std::invalid_argument if name is 'discordtag', 'everyone',
+         *  \throws InvalidParameter if name.size() is 1 or > 32.
+         *  \throws InvalidParameter if name is 'discordtag', 'everyone',
          *          'here' or contains '@', '#', ':', or '```'.
-         *  \throws APIError on API error (invalid name).
+         *  \throws RESTError on API error (invalid name).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns User object after change.
@@ -770,8 +748,8 @@ namespace Hexicord {
         /**
          *  Change avatar.
          *
-         *  \throws APIError on API error (???).
-         *  \throws std::invalid_argument if format is Detect and detection failed.
+         *  \throws RESTError on API error (???).
+         *  \throws InvalidParameter if format is Detect and detection failed.
          *  \throws boost::system::system_error on connection problem (rare).
          *                                                                    
          *  \returns User object after change.
@@ -783,7 +761,7 @@ namespace Hexicord {
          *
          *  Convenience overload. Reads stream into vector and passes to first overload.
          *
-         *  \throws APIError on API error (???).
+         *  \throws RESTError on API error (???).
          *  \throws boost::system::system_error on connection problem (rare).
          *                                                                    
          *  \returns User object after change.
@@ -816,7 +794,7 @@ namespace Hexicord {
          *  \param startId  Get guilds **after** this guild ID.
          *  \param before   Get guilds **before** startId, not after.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getUserGuilds(unsigned short limit = 100, uint64_t startId = 0, bool before = false);
@@ -826,7 +804,7 @@ namespace Hexicord {
          *
          *  \param guildId  Guild snowflake ID.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         void leaveGuild(uint64_t guildId);
@@ -834,7 +812,7 @@ namespace Hexicord {
         /**
          *  Returns a list of DM channel objects.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getUserDms();
@@ -844,7 +822,7 @@ namespace Hexicord {
          *
          *  \param recipientId  Recipient user showflake ID.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns Created DM channel object.
@@ -862,7 +840,7 @@ namespace Hexicord {
          *                      app the gdm.join scope.
          *  \param nicks        A dictionary of user ids to their respective nicknames.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json createGroupDm(const std::vector<uint64_t>& accessTokens,
@@ -873,7 +851,7 @@ namespace Hexicord {
          *
          *  Requires the connections OAuth2 scope.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getConnections();
@@ -891,7 +869,7 @@ namespace Hexicord {
         /**
          *  Returns an invite object for the given code.
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          */
         nlohmann::json getInvite(const std::string& inviteCode);
@@ -901,7 +879,7 @@ namespace Hexicord {
          *
          *  Requires the MANAGE_CHANNELS permission. 
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns An invite object.
@@ -915,7 +893,7 @@ namespace Hexicord {
          *  invites on behalf of normal users (via an OAuth2 Bearer token). Bot
          *  users are disallowed. 
          *
-         *  \throws APIError on API error (missing permissions, invalid ID).
+         *  \throws RESTError on API error (missing permissions, invalid ID).
          *  \throws boost::system::system_error on connection problem (rare).
          *
          *  \returns An invite object.
@@ -927,7 +905,7 @@ namespace Hexicord {
          *
          *  Requires the 'MANAGE_CHANNELS' permission.
          *
-         *  May throw APIError if invalid IDs specified or current user don't
+         *  May throw RESTError if invalid IDs specified or current user don't
          *  have required permissions. Also may throw 
          *  boost::system::system_error if client fails to connect 
          *  to REST API server.
@@ -952,7 +930,7 @@ namespace Hexicord {
          *  By default this method tries to reuse similar invite if avaliable,
          *  you can override this by passing unique = true.
          *
-         *  This method throws APIError on any API error (for this method it can be
+         *  This method throws RESTError on any API error (for this method it can be
          *  caused by invalid ID or missing permission).
          *  In addition this method throws boost::system::system_error if REST API
          *  server is not reachable.
@@ -1039,6 +1017,9 @@ private:
             std::string dump = json.dump();
             return std::vector<uint8_t>(dump.begin(), dump.end());
         }
+
+        // Throws RESTError or inherited class.
+        void throwRestError(const REST::HTTPResponse& response, const nlohmann::json& payload);
 
         void startGatewayPolling();
         void startGatewayHeartbeat();

@@ -22,6 +22,7 @@
 
 #include <hexicord/client.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <hexicord/exceptions.hpp>
 #include <hexicord/internal/utils.hpp>
 
 #ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
@@ -213,13 +214,12 @@ namespace Hexicord {
                 excp.code() != boost::asio::error::connection_reset) throw;
 
             DEBUG_MSG("HTTP Connection closed by remote. Reopenning and retrying.");
-            restConnection->close();
-
-            REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
-            // we should not reuse socket.
-            restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
-            restConnection->connectionHeaders = std::move(prevHeaders);
-            restConnection->open();
+            {
+                REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
+                restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+                restConnection->connectionHeaders = std::move(prevHeaders);
+                restConnection->open();
+            }
             
             response = restConnection->request(request);
         }
@@ -233,23 +233,7 @@ namespace Hexicord {
         if (response.statusCode / 100 != 2) {
             DEBUG_MSG("Got non-2xx HTTP status code.");
             DEBUG_MSG(jsonResp.dump(4));
-            int code = -1;
-            std::string message;
-            if (jsonResp.find("code") != jsonResp.end()) code = jsonResp["code"];
-            if (jsonResp.find("message") != jsonResp.end()) {
-                message = std::string("API error: ") + jsonResp["message"].get<std::string>();
-            } else {
-                for (auto param : payload.get<std::unordered_map<std::string, nlohmann::json> >()) {
-                    // TODO: Throw something like "InvalidArgument"
-                    auto it = jsonResp.find(param.first);
-                    if (it != jsonResp.end() && it->size() != 0) {
-                        throw APIError(std::string("Invalid argument: ") + param.first + ": " +
-                                       it->at(0).get<std::string>());
-                    }
-                    throw APIError("Unknown API error", code, response.statusCode);
-                }
-            }
-            throw APIError(message, code, response.statusCode);
+            throwRestError(response, jsonResp);
         }
 
         return jsonResp;
@@ -291,7 +275,7 @@ namespace Hexicord {
         nlohmann::json payload;
         if (name) {
             if (name->size() > 100 || name->size() < 2) {
-                throw std::out_of_range("name size out of range (should be 2-100).");
+                throw InvalidParameter("name", "name size out of range (should be 2-100).");
             }
             payload.emplace("name", *name);
         }
@@ -299,28 +283,28 @@ namespace Hexicord {
             payload.emplace("position", *position);
         }
         if (topic && (bitrate || usersLimit)) {
-            throw std::invalid_argument("Passing both voice-only and text-only channel arguments.");
+            throw InvalidParameter("bitrate", "Passing both voice-only and text-only channel arguments.");
         }
         if (topic) {
             if (topic->size() > 1024) {
-                throw std::out_of_range("topic size out of range (should be 0-1024).");
+                throw InvalidParameter("topic", "topic size out of range (should be 0-1024).");
             }
             payload.emplace("topic", *topic);
         }
         if (bitrate) {
             if (*bitrate < 8000 || *bitrate > 128000) {
-                throw std::out_of_range("bitrate out of range (should be 8000-128000).");
+                throw InvalidParameter("bitrate", "bitrate out of range (should be 8000-128000).");
             }
             payload.emplace("bitrate", *bitrate);
         }
         if (usersLimit) {
             if (*usersLimit > 99) {
-                throw std::out_of_range("usersLimit out of range (should be 0-99).");
+                throw InvalidParameter("userslimit", "usersLimit out of range (should be 0-99).");
             }
             payload.emplace("users_limit", *usersLimit);
         }
         if (payload.empty()) {
-            throw std::invalid_argument("No arguments passed to modifyChannel.");
+            throw InvalidParameter("", "No arguments passed to modifyChannel.");
         }
 
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId), payload);
@@ -349,10 +333,10 @@ namespace Hexicord {
 
         if (limit != 50) { // 50 is default value in v6, no need to pass it explicitly.
             if (limit > 100 || limit == 0) {
-                throw std::out_of_range("limit out of range (should be 1-100).");
+                throw InvalidParameter("limit", "limit out of range (should be 1-100).");
             }
             if (mode == After && limit == 1) {
-                throw std::out_of_range("limit out of range (should be 2-100 for After mode).");
+                throw InvalidParameter("limit", "limit out of range (should be 2-100 for After mode).");
             }
             query.insert({ "limit", std::to_string(limit) });
         }
@@ -433,7 +417,7 @@ namespace Hexicord {
     nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,
                                        boost::optional<uint64_t> nonce) {
         if (text.size() > 2000) {
-            throw std::out_of_range("text out of range (should be 0-1024).");
+            throw InvalidParameter("text", "text out of range (should be 0-1024).");
         }
 
         nlohmann::json payload;
@@ -447,7 +431,7 @@ namespace Hexicord {
 
     nlohmann::json Client::editMessage(uint64_t channelId, uint64_t messageId, const std::string& text) {
         if (text.size() > 2000) {
-            throw std::out_of_range("text size out of range (should be 0-1024)");
+            throw InvalidParameter("text", "text size out of range (should be 0-1024)");
         }
         return sendRestRequest("PATCH", std::string("/channels/") + std::to_string(channelId) +
                                "/messages/" + std::to_string(messageId),
@@ -500,20 +484,20 @@ namespace Hexicord {
 
     nlohmann::json Client::setUsername(const std::string& newUsername) {
         if (newUsername.size() < 2 || newUsername.size() > 32) {
-            throw std::out_of_range("newUseranme size out of range (should be 2-32)");
+            throw InvalidParameter("newUsername", "newUseranme size out of range (should be 2-32)");
         }
         if (newUsername == "discordtag" || newUsername == "everyone" || newUsername == "here") {
-            throw std::invalid_argument("newUsername should not be 'discordtag', 'everyone' or 'here'");
+            throw InvalidParameter("newUsername", "newUsername should not be 'discordtag', 'everyone' or 'here'");
         }
         unsigned short foundGraves = 0;
         for (char ch : newUsername) {
             if (ch == '@' || ch == '#' || ch == ':') {
-                throw std::invalid_argument("newUsername contains foribbden characters ('@', '#' or ':')");
+                throw InvalidParameter("newUsername", "newUsername contains foribbden characters ('@', '#' or ':')");
             }
             if (ch == '`') {
                 ++foundGraves;
                 if (foundGraves == 3) {
-                    throw std::invalid_argument("newUsername contains forbidden substring: '```'");
+                    throw InvalidParameter("newUsername", "newUsername contains forbidden substring: '```'");
                 }
             } else {
                 foundGraves = 0;
@@ -531,7 +515,7 @@ namespace Hexicord {
         if (format == Png  || (format == Detect && Utils::Magic::isPng(avatarBytes)))  mimeType = "image/png";
 
         if (mimeType.empty()) {
-            throw std::invalid_argument("Failed to detect avatar format.");
+            throw InvalidParameter("avatarBytes", "Failed to detect avatar format.");
         }
 
         std::string dataUrl = std::string("data:") + mimeType + ";base64," + Utils::base64Encode(avatarBytes);
@@ -606,6 +590,48 @@ namespace Hexicord {
         if (unique)               payload["unique"]               = true;
 
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
+    }
+
+    void Client::throwRestError(const REST::HTTPResponse& response,
+                                const nlohmann::json& payload) {
+
+            int code = -1;
+            if (payload.find("code") != payload.end()) code = payload["code"];
+            if (payload.find("message") != payload.end()) {
+                if (code / 10000 == 1) {
+                    throw UnknownEntity(payload["message"], code);
+                }
+                if (code / 10000 == 5) {
+                    throw LimitReached(payload["message"], code); 
+                }
+
+                throw RESTError(payload["message"].get<std::string>(), code, response.statusCode);
+            }
+            
+
+            /* REST API sometimes return errors about invalid paramters in
+             * undocumented format, like this:
+             * ```json
+             * {
+             *  "parameter_name": [ "whats_wrong" ]
+             * }
+             * ```
+             *
+             * We iterate through received payload and check if it looks like JSON
+             * above, if so - we throw InvalidParameter.
+             */
+            for (auto param : payload.get<std::unordered_map<std::string, nlohmann::json> >()) { 
+                if (param.second.is_array() && param.second.size() == 1 &&
+                    param.second[0].is_string()) {
+                    // check for array with one string inside ^
+
+                    // param.first => parameter name
+                    // param.second[0] => error description
+                    throw InvalidParameter(param.first, param.second[0]);
+                }
+            }
+
+            throw RESTError("Unknown error");
     }
 
     void Client::startGatewayPolling() {
