@@ -29,6 +29,10 @@
 #include <hexicord/internal/wss.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/internal/beast_rest.hpp>
+#include <hexicord/config.hpp>
+#ifdef HEXICORD_RATELIMIT_PREDICTION 
+    #include <hexicord/ratelimit_lock.hpp>
+#endif
 
 /**
  *  \file client.hpp
@@ -966,6 +970,10 @@ namespace Hexicord {
          *  Events dispatcher used to dispatch gateway events.
          */
         EventDispatcher eventDispatcher;
+
+#ifdef HEXICORD_RATELIMIT_PREDICTION
+        RatelimitLock ratelimitLock;
+#endif
         
         /**
          *  Used authorization token.
@@ -1021,8 +1029,16 @@ private:
         // Throws RESTError or inherited class.
         void throwRestError(const REST::HTTPResponse& response, const nlohmann::json& payload);
 
+#ifdef HEXICORD_RATELIMIT_PREDICTION 
+        void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
+#endif 
+
         void startGatewayPolling();
         void startGatewayHeartbeat();
+
+        // wait maximum for maxTime milliseconds while sending heartbeat if needed.
+        void waitWithHeartbeat(unsigned maxTimeMs);
+        void sendHeartbeat();
 
         std::string sessionId_;
         std::string lastUsedGatewayUrl;
