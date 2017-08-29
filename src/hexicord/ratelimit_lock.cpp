@@ -2,16 +2,13 @@
 #include <chrono>
 #include <thread>
 #include <ctime>
+#include <hexicord/config.hpp>
 
-#ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
+#if defined(HEXICORD_DEBUG_LOG) && defined(HEXICORD_DEBUG_RATELIMITLOCK) 
     #include <iostream>
     #define DEBUG_MSG(msg) do { std::cerr << "ratelimit_lock.cpp:" << __LINE__ << "\t" << (msg) << '\n'; } while (false)
 #else
     #define DEBUG_MSG(msg)
-#endif
-
-#ifndef HEXICORD_RATELIMIT_CACHE_SIZE
-    #define HEXICORD_RATELIMIT_CACHE_SIZE 100
 #endif
 
 int Hexicord::RatelimitLock::remaining(const std::string& route) {

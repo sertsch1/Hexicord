@@ -26,9 +26,9 @@
 #include <hexicord/exceptions.hpp>
 #include <hexicord/internal/utils.hpp>
 
-#ifndef NDEBUG // TODO: Replace with flag that affects only Hexicord.
+#if defined(HEXICORD_DEBUG_LOG) && defined(HEXICORD_DEBUG_CLIENT)
     #include <iostream>
-    #define DEBUG_MSG(msg) do { std::cerr << __FILE__ << ":" << __LINE__ << " " << (msg) << '\n'; } while (false)
+    #define DEBUG_MSG(msg) do { std::cerr <<  "client.cpp:" << __LINE__ << " " << (msg) << '\n'; } while (false)
 #else
     #define DEBUG_MSG(msg)
 #endif
@@ -242,8 +242,12 @@ namespace Hexicord {
 
         if (response.statusCode / 100 != 2) {
             if (response.statusCode == 429) {
+#ifdef HEXICORD_RATELIMIT_HIT_AS_ERROR
+                throw RatelimitHit(Utils::getRatelimitDomain(endpoint));
+#else 
                 waitWithHeartbeat(jsonResp["Retry-After"].get<unsigned>());
                 return sendRestRequest(method, endpoint, payload, query);
+#endif 
             }
 
             DEBUG_MSG("Got non-2xx HTTP status code.");

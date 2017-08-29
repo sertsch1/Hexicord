@@ -173,7 +173,7 @@ macro(hexicord_config type option_name docstring default_value)
     message(STATUS "Hexicord configuration: ${option_name} = ${default_value}")
 endmacro()
 
-hexicord_config(BOOL HEXICORD_GITHUB "URL to send in User-Agent" "https://github.com/foxcpp/Hexicord")
+hexicord_config(STRING HEXICORD_GITHUB "URL to send in UA." "https://github.com/foxcpp/Hexicord")
 
 hexicord_config(BOOL HEXICORD_DEBUG_LOG "Master switch for debug messages. Warning: VERY VERBOSE."  OFF)
 
