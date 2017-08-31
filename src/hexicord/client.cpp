@@ -206,8 +206,7 @@ namespace Hexicord {
 
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
         // Make sure we can do request without getting ratelimited.
-        ratelimitLock.down(Utils::getRatelimitDomain(endpoint),
-                           [this](time_t maxTime) { this->waitWithHeartbeat(maxTime * 1000); });
+        ratelimitLock.down(Utils::getRatelimitDomain(endpoint));
 #endif
 
         REST::HTTPResponse response;
@@ -245,7 +244,7 @@ namespace Hexicord {
 #ifdef HEXICORD_RATELIMIT_HIT_AS_ERROR
                 throw RatelimitHit(Utils::getRatelimitDomain(endpoint));
 #else 
-                waitWithHeartbeat(jsonResp["Retry-After"].get<unsigned>());
+                std::this_thread::sleep_for(std::chrono::seconds(jsonResp["retry_after"].get<unsigned>()));
                 return sendRestRequest(method, endpoint, payload, query);
 #endif 
             }
@@ -739,37 +738,12 @@ namespace Hexicord {
         });
     }
 
-    void Client::waitWithHeartbeat(unsigned maxTimeMs) {
-        unsigned msUntilHeartbeat = heartbeatTimer.expires_from_now().total_milliseconds();
-
-        DEBUG_MSG(std::string("Waiting for ") + std::to_string(maxTimeMs));
-        DEBUG_MSG(std::string("Miliiseconds until heartbeat: ") + std::to_string(msUntilHeartbeat));
-
-        assert(maxTimeMs > 0);
-        assert(msUntilHeartbeat > 0);
-
-        if (maxTimeMs == 0) return;
-
-        // to avoid interference with async timer.
-        heartbeatTimer.cancel();
-        heartbeat = false;
-
-        if (maxTimeMs > msUntilHeartbeat) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(maxTimeMs - msUntilHeartbeat));
-
-            sendHeartbeat();
-
-            startGatewayHeartbeat();
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(maxTimeMs));
-        }
-    }
-
     void Client::sendHeartbeat() {
         if (unansweredHeartbeats >= 2) {
             DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
             disconnectFromGateway(5000);
             resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
+            return;
         }
 
         DEBUG_MSG("Gateway heartbeat sent.");

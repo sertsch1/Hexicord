@@ -1036,8 +1036,6 @@ private:
         void startGatewayPolling();
         void startGatewayHeartbeat();
 
-        // wait maximum for maxTime milliseconds while sending heartbeat if needed.
-        void waitWithHeartbeat(unsigned maxTimeMs);
         void sendHeartbeat();
 
         std::string sessionId_;

@@ -40,14 +40,10 @@ namespace Hexicord
         
         /**
          * Called before perfoming request, block until reset time if rate limit hit.
-         * busyWaiter called while waiting with small (to prevent taking over CPU).
          *
-         * busyWait is called in a loop every 100 ms until time is matched,
-         * maximum wait time is passed to argument.
-         * 
          * **Should not be called by user code directly.**
          */
-        void down(const std::string& route, std::function<void(time_t)> busyWaiter);
+        void down(const std::string& route);
 
         /**
          * Called after request in order to update information about ratelimits.
