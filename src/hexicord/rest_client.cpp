@@ -20,8 +20,8 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+#include <hexicord/rest_client.hpp>
 #include <thread>
-#include <hexicord/client.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <hexicord/exceptions.hpp>
 #include <hexicord/internal/utils.hpp>
@@ -33,148 +33,32 @@
     #define DEBUG_MSG(msg)
 #endif
 
-// All we need is C++11 compatibile compiler and boost libraries so we can probably run on a lot of platforms.
-#if defined(__linux__) || defined(__linux) || defined(linux) || defined(__GNU__)
-    #define OS_STR "linux"
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
-    #define OS_STR "bsd"
-#elif defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-    #define OS_STR "win32"
-#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
-    #define OS_STR "macos"
-#elif defined(__unix__) || defined (__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE)
-    #define OS_STR "unix"
-#else
-    #define OS_STR "unknown"
-#endif 
-
 namespace Hexicord {
-    Client::Client(boost::asio::io_service& ioService, const std::string& token) 
+    RestClient::RestClient(boost::asio::io_service& ioService, const std::string& token) 
         : restConnection(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService))
-        , gatewayConnection(new TLSWebSocket(ioService))
         , token(token)
-        , ioService(ioService)
-        , heartbeatTimer(ioService) {
+        , ioService(ioService) {
 
         // It's strange but Discord API requires "DiscordBot" user-agent for any connections
         // including non-bots. Referring to https://discordapp.com/developers/docs/reference#user-agent
         restConnection->connectionHeaders.insert({ "User-Agent", "DiscordBot (" HEXICORD_GITHUB ", " HEXICORD_VERSION ")" });
     }
 
-    Client::~Client() {
-        if (gatewayConnection) disconnectFromGateway();
-    }
-
-    std::string Client::getGatewayUrl() {
+    std::string RestClient::getGatewayUrl() {
         restConnection->connectionHeaders.insert({ "Authorization", std::string("Bearer ") + token });
 
         nlohmann::json response = sendRestRequest("GET", "/gateway");
         return response["url"];
     }
 
-    std::pair<std::string, int> Client::getGatewayUrlBot() {
+    std::pair<std::string, int> RestClient::getGatewayUrlBot() {
         restConnection->connectionHeaders.insert({ "Authorization", std::string("Bot ") + token });
 
         nlohmann::json response = sendRestRequest("GET", "/gateway/bot");
         return { response["url"].get<std::string>(), response["shards"].get<unsigned>() };
     }
 
-    void Client::resumeGatewaySession(const std::string& gatewayUrl, const std::string& token,
-                                      std::string sessionId, int lastSeq) {
-        DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
-                  " lastSeq=" + std::to_string(lastSeq));
-       
-        if (!gatewayConnection) {
-            gatewayConnection = std::unique_ptr<TLSWebSocket>(new TLSWebSocket(ioService));
-        }
-
-        DEBUG_MSG("Performing WebSocket handshake...");
-        gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
-
-        DEBUG_MSG("Reading Hello message.");
-        nlohmann::json gatewayHello = readGatewayMessage();
-        heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
-        DEBUG_MSG(std::string("Gateway heartbeat interval: ") + std::to_string(heartbeatIntervalMs) + " ms.");
-        heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
-
-        DEBUG_MSG("Sending Resume message...");
-        sendGatewayMsg(GatewayOpCodes::Resume, {
-                { "token", token },
-                { "session_id", sessionId },
-                { "seq", lastSeq }
-        });
-
-        DEBUG_MSG("Starting gateway polling...");
-        startGatewayPolling();
-    }
-
-    void Client::connectToGateway(const std::string& gatewayUrl, int shardId, int shardCount,
-                                  const nlohmann::json& initialPresense) {
-        // Set if we didn't done it already. Since Client may be actually used without prior call
-        // to getGatewayUrlBot because of sharding.
-        restConnection->connectionHeaders.insert({ "Authorization", std::string("Bot ") + token });
-
-        if (!gatewayConnection) {
-            gatewayConnection = std::unique_ptr<TLSWebSocket>(new TLSWebSocket(ioService));
-        }
-
-        DEBUG_MSG("Performing WebSocket handshake...");
-        gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
-       
-        DEBUG_MSG("Reading Hello message...");
-        nlohmann::json gatewayHello = readGatewayMessage();
-        heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
-        DEBUG_MSG(std::string("Gateway heartbeat interval: ") + std::to_string(heartbeatIntervalMs) + " ms.");
-        heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
-
-        nlohmann::json message = {
-            { "token" , token },
-            { "properties", {
-                { "os", OS_STR },
-                { "browser", "hexicord" },
-                { "device", "hexicord" }
-            }},
-            { "compress", false }, // TODO: compression support
-            { "large_threshold", 250 }, // should be changeble
-            { "presense", initialPresense }
-        };
-
-
-        if (shardId != NoSharding && shardCount != NoSharding) {
-            message.push_back({ "shard", { shardId, shardCount }});
-        }
-
-        DEBUG_MSG("Sending Identify message...");
-        sendGatewayMsg(GatewayOpCodes::Identify, message);
-
-        sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-        startGatewayHeartbeat();
-
-        eventDispatcher.addHandler(Event::Ready, [this](const nlohmann::json& payload) {
-            DEBUG_MSG("Connected to gateway successfully.");
-            // save session_id for usage in OP 6 Resume.
-            this->sessionId_ = payload["session_id"];
-        });
-
-        lastUsedGatewayUrl = gatewayUrl;
-        startGatewayPolling();
-    }
-
-    void Client::disconnectFromGateway(int code) {
-        DEBUG_MSG(std::string("Disconnecting from gateway... code=") + std::to_string(code));
-        try {
-            sendGatewayMsg(GatewayOpCodes::EventDispatch, nlohmann::json(code), "CLOSE");
-        } catch (...) { // whatever happened - we don't care.
-        }
-
-        heartbeat = false;
-        heartbeatTimer.cancel();
-
-        gatewayConnection->shutdown();
-        gatewayConnection.reset(nullptr);
-    }
-
-    nlohmann::json Client::sendRestRequest(const std::string& method, const std::string& endpoint,
+    nlohmann::json RestClient::sendRestRequest(const std::string& method, const std::string& endpoint,
                                            const nlohmann::json& payload, const std::unordered_map<std::string, std::string>& query) {
         if (!restConnection->isOpen()) {
             restConnection->open();
@@ -200,7 +84,11 @@ namespace Hexicord {
         request.version = 11;
         if (!payload.is_null() && !payload.empty()) {
             request.headers.insert({ "Content-Type", "application/json" });
-            request.body = jsonToVector(payload);
+
+            {
+                std::string jsonStr = payload.dump();
+                request.body = std::vector<uint8_t>(jsonStr.begin(), jsonStr.end());
+            }
         }
         request.headers.insert({ "Accept", "application/json" });
 
@@ -233,7 +121,7 @@ namespace Hexicord {
             return {};
         }
 
-        nlohmann::json jsonResp = vectorToJson(response.body);
+        nlohmann::json jsonResp = nlohmann::json::parse(response.body);
 
 #ifdef HEXICORD_RATELIMIT_PREDICTION
         updateRatelimitsIfPresent(endpoint, response.headers);
@@ -257,34 +145,11 @@ namespace Hexicord {
         return jsonResp;
     }
 
-    void Client::sendGatewayMsg(int opCode, const nlohmann::json& payload, const std::string& t) {
-        nlohmann::json message = {
-            { "op", opCode },
-            { "d",  payload }
-        };
-
-        if (!t.empty()) {
-            message.push_back({ "t", t });
-        }
-        
-        try {
-            gatewayConnection->sendMessage(jsonToVector(message));
-        } catch (boost::system::system_error& excp) {
-            if (excp.code() == boost::asio::error::broken_pipe ||
-                excp.code() == boost::asio::error::connection_reset ||
-                excp.code() == boost::beast::websocket::error::closed) { // unexpected disconnect
-
-                disconnectFromGateway();
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-            }
-        }
-    }
-
-    nlohmann::json Client::getChannel(uint64_t channelId) {
+    nlohmann::json RestClient::getChannel(uint64_t channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId));
     }
 
-    nlohmann::json Client::modifyChannel(uint64_t channelId,
+    nlohmann::json RestClient::modifyChannel(uint64_t channelId,
                                          boost::optional<std::string> name,
                                          boost::optional<int> position,
                                          boost::optional<std::string> topic,
@@ -328,11 +193,11 @@ namespace Hexicord {
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId), payload);
     }
 
-    nlohmann::json Client::deleteChannel(uint64_t channelId) {
+    nlohmann::json RestClient::deleteChannel(uint64_t channelId) {
         return sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId));
     }
 
-    nlohmann::json Client::getChannelMessages(uint64_t channelId, uint64_t startMessageId,
+    nlohmann::json RestClient::getChannelMessages(uint64_t channelId, uint64_t startMessageId,
                                               GetMsgMode mode, unsigned short limit) {
         
         std::unordered_map<std::string, std::string> query;
@@ -363,27 +228,27 @@ namespace Hexicord {
                                query);
     }
 
-    nlohmann::json Client::getChannelMessage(uint64_t channelId, uint64_t messageId) {
+    nlohmann::json RestClient::getChannelMessage(uint64_t channelId, uint64_t messageId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
                                "/messsages/" + std::to_string(messageId));
     }
 
-    nlohmann::json Client::getPinnedMessages(uint64_t channelId) {
+    nlohmann::json RestClient::getPinnedMessages(uint64_t channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/pins");
     }
 
-    void Client::pinMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::pinMessage(uint64_t channelId, uint64_t messageId) {
         sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
                                            "/pins/"      + std::to_string(messageId));
     }
 
-    void Client::unpinMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::unpinMessage(uint64_t channelId, uint64_t messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/pins/"      + std::to_string(messageId));
     }
 
-    void Client::editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+    void RestClient::editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
                                     Permissions allow, Permissions deny) {
 
         sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
@@ -395,7 +260,7 @@ namespace Hexicord {
             });
     }
 
-    void Client::editChannelUserPermissions(uint64_t channelId, uint64_t userId,
+    void RestClient::editChannelUserPermissions(uint64_t channelId, uint64_t userId,
                                     Permissions allow, Permissions deny) {
 
         sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
@@ -407,17 +272,17 @@ namespace Hexicord {
             });
     }
 
-    void Client::deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
+    void RestClient::deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
         sendRestRequest("DELETE", std::string("/channels/")   + std::to_string(channelId) +
                                               "/permissions/" + std::to_string(overrideId));
     }
 
-    void Client::kickFromGroupDm(uint64_t groupDmId, uint64_t userId) {
+    void RestClient::kickFromGroupDm(uint64_t groupDmId, uint64_t userId) {
         sendRestRequest("DELETE", std::string("/channels/")  + std::to_string(groupDmId) +
                                               "/recipients/" + std::to_string(userId));
     }
 
-    void Client::addToGroupDm(uint64_t groupDmId, uint64_t userId,
+    void RestClient::addToGroupDm(uint64_t groupDmId, uint64_t userId,
                               const std::string& accessToken, const std::string& nick) {
 
         sendRestRequest("PUT", std::string("/channels/")  + std::to_string(groupDmId) +
@@ -428,11 +293,11 @@ namespace Hexicord {
                         });
     }
 
-    void Client::triggerTypingIndicator(uint64_t channelId) {
+    void RestClient::triggerTypingIndicator(uint64_t channelId) {
         sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/typing");
     }
 
-    nlohmann::json Client::sendMessage(uint64_t channelId, const std::string& text, bool tts,
+    nlohmann::json RestClient::sendMessage(uint64_t channelId, const std::string& text, bool tts,
                                        boost::optional<uint64_t> nonce) {
         if (text.size() > 2000) {
             throw InvalidParameter("text", "text out of range (should be 0-1024).");
@@ -447,7 +312,7 @@ namespace Hexicord {
                                payload);
     }
 
-    nlohmann::json Client::editMessage(uint64_t channelId, uint64_t messageId, const std::string& text) {
+    nlohmann::json RestClient::editMessage(uint64_t channelId, uint64_t messageId, const std::string& text) {
         if (text.size() > 2000) {
             throw InvalidParameter("text", "text size out of range (should be 0-1024)");
         }
@@ -456,51 +321,51 @@ namespace Hexicord {
                                {{ "content", text }});
     }
 
-    void Client::deleteMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::deleteMessage(uint64_t channelId, uint64_t messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/" +
                         std::to_string(messageId));
     }
 
-    void Client::deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds) {
+    void RestClient::deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/bulk-delete",
                         {{ "messages", messageIds }});
     }
 
-    void Client::addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+    void RestClient::addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
         sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
                                            "/messages/"  + std::to_string(messageId) +
                                            "/reactions/" + std::to_string(emojiId)   +
                                            "/@me");
     }
 
-    void Client::removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId) {
+    void RestClient::removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/messages/"  + std::to_string(messageId) +
                                               "/reactions/" + std::to_string(emojiId)   +
                                              (userId ? std::to_string(userId) : std::string("/@me")));
     }
 
-    nlohmann::json Client::getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+    nlohmann::json RestClient::getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/messages/"  + std::to_string(messageId) +
                                                   "/reactions/" + std::to_string(emojiId));
     }
 
-    void Client::resetReactions(uint64_t channelId, uint64_t messageId) {
+    void RestClient::resetReactions(uint64_t channelId, uint64_t messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/messages/"  + std::to_string(messageId) +
                                               "/reactions");
     }
 
-    nlohmann::json Client::getMe() {
+    nlohmann::json RestClient::getMe() {
         return sendRestRequest("GET", std::string("/users/@me"));
     }
 
-    nlohmann::json Client::getUser(uint64_t id) {
+    nlohmann::json RestClient::getUser(uint64_t id) {
         return sendRestRequest("GET", std::string("/users/") + std::to_string(id));
     }
 
-    nlohmann::json Client::setUsername(const std::string& newUsername) {
+    nlohmann::json RestClient::setUsername(const std::string& newUsername) {
         if (newUsername.size() < 2 || newUsername.size() > 32) {
             throw InvalidParameter("newUsername", "newUseranme size out of range (should be 2-32)");
         }
@@ -525,7 +390,7 @@ namespace Hexicord {
         return sendRestRequest("PATCH", "/users/@me", {{ "username", newUsername }});
     }
 
-    nlohmann::json Client::setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format) {
+    nlohmann::json RestClient::setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format) {
         std::string mimeType;
 
         if (format == Gif  || (format == Detect && Utils::Magic::isGif(avatarBytes)))  mimeType = "image/gif";
@@ -540,13 +405,13 @@ namespace Hexicord {
         return sendRestRequest("PATCH", "/users/@me", {{ "avatar", dataUrl }});
     }
 
-    nlohmann::json Client::setAvatar(std::istream&& avatarStream, AvatarFormat format) {
+    nlohmann::json RestClient::setAvatar(std::istream&& avatarStream, AvatarFormat format) {
         // TODO: Implement stream sending.
         std::vector<uint8_t> avatarBytes{std::istreambuf_iterator<char>(avatarStream), std::istreambuf_iterator<char>()};
         return setAvatar(avatarBytes, format);
     }
 
-    nlohmann::json Client::getUserGuilds(unsigned short limit, uint64_t startId, bool before) {
+    nlohmann::json RestClient::getUserGuilds(unsigned short limit, uint64_t startId, bool before) {
         std::unordered_map<std::string, std::string> query;
         if (limit != 100) {
             query.insert({ "limit", std::to_string(limit) });
@@ -557,48 +422,48 @@ namespace Hexicord {
         return sendRestRequest("GET", "/users/@me/guilds", {}, query);
     }
 
-    void Client::leaveGuild(uint64_t guildId) {
+    void RestClient::leaveGuild(uint64_t guildId) {
         sendRestRequest("DELETE", std::string("/users/@me/guilds/") + std::to_string(guildId));
     }
 
-    nlohmann::json Client::getUserDms() {
+    nlohmann::json RestClient::getUserDms() {
         return sendRestRequest("GET", "/users/@me/channels");
     }
 
-    nlohmann::json Client::createDm(uint64_t recipientId) {
+    nlohmann::json RestClient::createDm(uint64_t recipientId) {
         return sendRestRequest("POST", "/users/@me/channels", {{ "recipient_id", recipientId }});
     }
 
 
-    nlohmann::json Client::createGroupDm(const std::vector<uint64_t>& accessTokens,
+    nlohmann::json RestClient::createGroupDm(const std::vector<uint64_t>& accessTokens,
                                          const std::unordered_map<uint64_t, std::string>& nicks) {
 
         return sendRestRequest("POST", "/users/@me/channels", {{ "access_tokens", accessTokens },
                                                                { "nicks",         nicks        }});
     }
 
-    nlohmann::json Client::getConnections() {
+    nlohmann::json RestClient::getConnections() {
         return sendRestRequest("GET", "/users/@me/connections");
     }
 
-    nlohmann::json Client::getInvite(const std::string& inviteCode) {
+    nlohmann::json RestClient::getInvite(const std::string& inviteCode) {
         return sendRestRequest("GET", std::string("/invites/") + inviteCode);
     }
 
-    nlohmann::json Client::revokeInvite(const std::string& inviteCode) {
+    nlohmann::json RestClient::revokeInvite(const std::string& inviteCode) {
         return sendRestRequest("DELETE", std::string("/invites/") + inviteCode);
     }
 
-    nlohmann::json Client::acceptInvite(const std::string& inviteCode) {
+    nlohmann::json RestClient::acceptInvite(const std::string& inviteCode) {
         return sendRestRequest("POST", std::string("/invites/") + inviteCode);
     }
 
-    nlohmann::json Client::getChannelInvites(uint64_t channelId) {
+    nlohmann::json RestClient::getChannelInvites(uint64_t channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/invites");
     }
 
-    nlohmann::json Client::createInvite(uint64_t channelId, unsigned maxAgeSecs,
+    nlohmann::json RestClient::createInvite(uint64_t channelId, unsigned maxAgeSecs,
                                         unsigned maxUses,
                                         bool temporaryMembership,
                                         bool unique) {
@@ -610,7 +475,7 @@ namespace Hexicord {
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
     }
 
-    void Client::throwRestError(const REST::HTTPResponse& response,
+    void RestClient::throwRestError(const REST::HTTPResponse& response,
                                 const nlohmann::json& payload) {
 
             int code = -1;
@@ -653,7 +518,7 @@ namespace Hexicord {
     }
 
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
-    void Client::updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers) {
+    void RestClient::updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers) {
         auto remainingIt = headers.find("X-RateLimit-Remaining");
         auto limitIt     = headers.find("X-RateLimit-Limit");
         auto resetIt     = headers.find("X-RateLimit-Reset");
@@ -667,87 +532,4 @@ namespace Hexicord {
         }
     }
 #endif // HEXICORD_RATELIMIT_PREDICTION
-
-    void Client::startGatewayPolling() {
-        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
-                                                   boost::system::error_code ec) {
-            if (!gatewayPoll) return;
-
-            if (ec == boost::asio::error::broken_pipe) { // unexpected disconnect.
-                disconnectFromGateway(5000);
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                return;
-            }
-
-            nlohmann::json message;
-            try {
-                message = vectorToJson(body);
-            } catch (nlohmann::json::parse_error& excp) {
-                // we may fail here because of partially readen message (what means gateway dropped our connection).
-                disconnectFromGateway(5000);
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                startGatewayPolling();
-                return;
-            }   
-
-            switch (message["op"].get<int>()) {
-            case GatewayOpCodes::EventDispatch:
-                DEBUG_MSG(std::string("Gateway Event: t=") + message["t"].get<std::string>() +
-                          " s=" + std::to_string(message["s"].get<int>()));
-                lastSeqNumber_ = message["s"];
-         
-                eventDispatcher.dispatchEvent(message["t"].get<std::string>(), message["d"]);
-                break;
-            case GatewayOpCodes::HeartbeatAck:
-                DEBUG_MSG("Gateway heartbeat answered.");
-                --unansweredHeartbeats;
-                break;
-            case GatewayOpCodes::Heartbeat:
-                DEBUG_MSG("Received heartbeat request.");
-                sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-                ++unansweredHeartbeats;
-                break;
-            case GatewayOpCodes::Reconnect:
-                DEBUG_MSG("Gateway asked us to reconnect...");
-                disconnectFromGateway();
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                break;
-            case GatewayOpCodes::InvalidSession:
-                DEBUG_MSG("Invalid session error.");
-                throw GatewayError("Invalid session.");
-                break;
-            default:
-                DEBUG_MSG("Unexpected gateway message.");
-                DEBUG_MSG(message);
-            }
-
-            startGatewayPolling();
-        });
-    }
-
-    void Client::startGatewayHeartbeat() {
-        heartbeatTimer.cancel();
-        heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
-        heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
-            if (ec == boost::asio::error::operation_aborted) return;
-            if (!heartbeat) return;
-
-            sendHeartbeat();
-
-            startGatewayHeartbeat();
-        });
-    }
-
-    void Client::sendHeartbeat() {
-        if (unansweredHeartbeats >= 2) {
-            DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
-            disconnectFromGateway(5000);
-            resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-            return;
-        }
-
-        DEBUG_MSG("Gateway heartbeat sent.");
-        sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-        ++unansweredHeartbeats;
-    }
 } // namespace Hexicord
