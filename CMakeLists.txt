@@ -177,8 +177,8 @@ hexicord_config(STRING HEXICORD_GITHUB "URL to send in UA." "https://github.com/
 
 hexicord_config(BOOL HEXICORD_DEBUG_LOG "Master switch for debug messages. Warning: VERY VERBOSE."  OFF)
 
-hexicord_config(BOOL HEXICORD_DEBUG_LOG_CLIENT       "Debug logging for Hexicord::Client."        ON)
-hexicord_config(BOOL HEXICORD_DEBUG_LOG_RATELIITLOCK "Debug logging for Hexicord::RatelimitLock." ON)
+hexicord_config(BOOL HEXICORD_DEBUG_CLIENT       "Debug logging for Hexicord::Client."        ON)
+hexicord_config(BOOL HEXICORD_DEBUG_RATELIITLOCK "Debug logging for Hexicord::RatelimitLock." ON)
 
 # Ratelimits handling
 hexicord_config(BOOL HEXICORD_RATELIMIT_PREDICTION   "Attempt to predict and avoid ratelimit hit. Experimental."    OFF)
