@@ -19,16 +19,15 @@
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 #include <hexicord/rest_client.hpp>
 #include <thread>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <hexicord/exceptions.hpp>
 #include <hexicord/internal/utils.hpp>
 
-#if defined(HEXICORD_DEBUG_LOG) && defined(HEXICORD_DEBUG_CLIENT)
+#if defined(HEXICORD_DEBUG_LOG)
     #include <iostream>
-    #define DEBUG_MSG(msg) do { std::cerr <<  "client.cpp:" << __LINE__ << " " << (msg) << '\n'; } while (false)
+    #define DEBUG_MSG(msg) do { std::cerr <<  "rest_client.cpp:" << __LINE__ << " " << (msg) << '\n'; } while (false)
 #else
     #define DEBUG_MSG(msg)
 #endif

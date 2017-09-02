@@ -1,7 +1,29 @@
+// Hexicord - Discord API library for C++11 using boost libraries.
+// Copyright © 2017 Maks Mazurov (fox.cpp) <foxcpp@yandex.ru>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+// OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #include <hexicord/gateway_client.hpp>
+#include <hexicord/config.hpp>
 #include <hexicord/internal/utils.hpp>
 
-#if defined(HEXICORD_DEBUG_LOG) && defined(HEXICORD_DEBUG_CLIENT)
+#if defined(HEXICORD_DEBUG_LOG)
     #include <iostream>
     #define DEBUG_MSG(msg) do { std::cerr <<  "gateway_client.cpp:" << __LINE__ << " " << (msg) << '\n'; } while (false)
 #else
@@ -26,54 +48,28 @@
 namespace Hexicord {
 
 GatewayClient::GatewayClient(boost::asio::io_service& ioService, const std::string& token) 
-    : ioService(ioService), token(token), heartbeatTimer(ioService) {}
+    : ioService(ioService), token_(token), heartbeatTimer(ioService) {}
 
-void GatewayClient::resumeGatewaySession(const std::string& gatewayUrl, const std::string& token,
-                                  std::string sessionId, int lastSeq) {
-    DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
-              " lastSeq=" + std::to_string(lastSeq));
-   
-    if (!gatewayConnection) {
-        gatewayConnection = std::unique_ptr<TLSWebSocket>(new TLSWebSocket(ioService));
-    }
-
-    DEBUG_MSG("Performing WebSocket handshake...");
-    gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
-
-    DEBUG_MSG("Reading Hello message.");
-    nlohmann::json gatewayHello = readGatewayMessage();
-    heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
-    DEBUG_MSG(std::string("Gateway heartbeat interval: ") + std::to_string(heartbeatIntervalMs) + " ms.");
-    heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
-
-    DEBUG_MSG("Sending Resume message...");
-    sendGatewayMsg(GatewayOpCodes::Resume, {
-            { "token", token },
-            { "session_id", sessionId },
-            { "seq", lastSeq }
-    });
-
-    DEBUG_MSG("Starting gateway polling...");
-    startGatewayPolling();
+GatewayClient::~GatewayClient() {
+    if (gatewayConnection && gatewayConnection->isSocketOpen()) disconnect();
 }
 
-void GatewayClient::connectToGateway(const std::string& gatewayUrl, int shardId, int shardCount,
-                              const nlohmann::json& initialPresense) {
-    if (!gatewayConnection) {
-        gatewayConnection = std::unique_ptr<TLSWebSocket>(new TLSWebSocket(ioService));
-    }
+void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shardCount,
+                            const nlohmann::json& initialPresense) {
 
-    DEBUG_MSG("Performing WebSocket handshake...");
-    gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
+    DEBUG_MSG("Make sure connection is up...");
+    if (!gatewayConnection)                 gatewayConnection.reset(new TLSWebSocket(ioService));
+    if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl),
+                                                                         gatewayPathSuffix, 443);
    
     DEBUG_MSG("Reading Hello message...");
-    nlohmann::json gatewayHello = readGatewayMessage();
+    nlohmann::json gatewayHello = nlohmann::json::parse(gatewayConnection->readMessage());
+
     heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
     DEBUG_MSG(std::string("Gateway heartbeat interval: ") + std::to_string(heartbeatIntervalMs) + " ms.");
-    heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
 
     nlohmann::json message = {
-        { "token" , token },
+        { "token" , token_ },
         { "properties", {
             { "os", OS_STR },
             { "browser", "hexicord" },
@@ -90,116 +86,183 @@ void GatewayClient::connectToGateway(const std::string& gatewayUrl, int shardId,
     }
 
     DEBUG_MSG("Sending Identify message...");
-    sendGatewayMsg(GatewayOpCodes::Identify, message);
-
-    sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-    startGatewayHeartbeat();
+    sendMessage(OpCode::Identify, message);
 
     eventDispatcher.addHandler(Event::Ready, [this](const nlohmann::json& payload) {
         DEBUG_MSG("Connected to gateway successfully.");
+
         // save session_id for usage in OP 6 Resume.
-        this->sessionId_ = payload["session_id"];
+        sessionId_ = payload["session_id"];
     });
 
-    lastUsedGatewayUrl = gatewayUrl;
-    startGatewayPolling();
+    lastGatewayUrl_     = gatewayUrl;
+    shardId_            = shardId;
+    shardCount_         = shardCount;
+    lastSequenceNumber_ = 0;
+
+    heartbeat = true;
+    asyncHeartbeat();
+    poll = true;
+    asyncPoll();
 }
 
-void GatewayClient::disconnectFromGateway(int code) {
+void GatewayClient::resume(const std::string& gatewayUrl,
+                           std::string sessionId, int lastSequenceNumber,
+                           int shardId, int shardCount) {
+
+    DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
+              " lastSeq=" + std::to_string(lastSequenceNumber));
+   
+    if (!gatewayConnection) gatewayConnection.reset(new TLSWebSocket(ioService));
+    if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
+
+    DEBUG_MSG("Performing WebSocket handshake...");
+    gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
+
+    DEBUG_MSG("Reading Hello message.");
+    nlohmann::json gatewayHello = nlohmann::json::parse(gatewayConnection->readMessage());
+
+    DEBUG_MSG("Sending Resume message...");
+    sendMessage(OpCode::Resume, {
+        { "token",      token_             },
+        { "session_id", sessionId          },
+        { "seq",        lastSequenceNumber }
+    });
+
+    heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
+    lastGatewayUrl_     = gatewayUrl;
+    sessionId_          = sessionId;
+    lastSequenceNumber_ = lastSequenceNumber;
+
+    heartbeat = true;
+    asyncHeartbeat();
+    poll = true;
+    asyncPoll();
+}
+
+void GatewayClient::disconnect(int code) noexcept {
     DEBUG_MSG(std::string("Disconnecting from gateway... code=") + std::to_string(code));
     try {
-        sendGatewayMsg(GatewayOpCodes::EventDispatch, nlohmann::json(code), "CLOSE");
+        if (code != NoCloseEvent) sendMessage(OpCode::EventDispatch, nlohmann::json(code), "CLOSE");
     } catch (...) { // whatever happened - we don't care.
     }
 
     heartbeat = false;
     heartbeatTimer.cancel();
 
-    gatewayConnection->shutdown();
+    poll = false;
+
     gatewayConnection.reset(nullptr);
 }
 
-void GatewayClient::startGatewayPolling() {
-        gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
-                                                   boost::system::error_code ec) {
-            if (!gatewayPoll) return;
+void GatewayClient::recoverConnection() {
+    DEBUG_MSG("Lost gateway connection, recovering...");
+    disconnect(NoCloseEvent);
 
-            if (ec == boost::asio::error::broken_pipe) { // unexpected disconnect.
-                disconnectFromGateway(5000);
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                return;
-            }
-
-            nlohmann::json message;
-            try {
-                message = vectorToJson(body);
-            } catch (nlohmann::json::parse_error& excp) {
-                // we may fail here because of partially readen message (what means gateway dropped our connection).
-                disconnectFromGateway(5000);
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                startGatewayPolling();
-                return;
-            }   
-
-            switch (message["op"].get<int>()) {
-            case GatewayOpCodes::EventDispatch:
-                DEBUG_MSG(std::string("Gateway Event: t=") + message["t"].get<std::string>() +
-                          " s=" + std::to_string(message["s"].get<int>()));
-                lastSeqNumber_ = message["s"];
-         
-                eventDispatcher.dispatchEvent(message["t"].get<std::string>(), message["d"]);
-                break;
-            case GatewayOpCodes::HeartbeatAck:
-                DEBUG_MSG("Gateway heartbeat answered.");
-                --unansweredHeartbeats;
-                break;
-            case GatewayOpCodes::Heartbeat:
-                DEBUG_MSG("Received heartbeat request.");
-                sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
-                ++unansweredHeartbeats;
-                break;
-            case GatewayOpCodes::Reconnect:
-                DEBUG_MSG("Gateway asked us to reconnect...");
-                disconnectFromGateway();
-                resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-                break;
-            case GatewayOpCodes::InvalidSession:
-                DEBUG_MSG("Invalid session error.");
-                throw GatewayError("Invalid session.");
-                break;
-            default:
-                DEBUG_MSG("Unexpected gateway message.");
-                DEBUG_MSG(message);
-            }
-
-            startGatewayPolling();
-        });
+    try {
+        resume(lastGatewayUrl_, sessionId_, lastSequenceNumber_, shardId_, shardCount_);
+    } catch (GatewayError& excp) {
+        DEBUG_MSG("Resume failed, starting new session...");
+        connect(lastGatewayUrl_, shardId_, shardCount_);
     }
+}
 
-    void GatewayClient::startGatewayHeartbeat() {
-        heartbeatTimer.cancel();
-        heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
-        heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
-            if (ec == boost::asio::error::operation_aborted) return;
-            if (!heartbeat) return;
+void GatewayClient::asyncPoll() {
+    DEBUG_MSG("Polling gateway messages...");
+    gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
+                                               boost::system::error_code ec) {
+        if (!poll) return;
+        if (ec == boost::asio::error::broken_pipe ||
+            ec == boost::asio::error::connection_reset ||
+            ec == boost::beast::websocket::error::closed) recoverConnection();
 
-            sendHeartbeat();
+        try {
+            nlohmann::json message = nlohmann::json::parse(body);
 
-            startGatewayHeartbeat();
-        });
-    }
+            lastMessage = message;
+            if (!skipMessages) processMessage(message);
+        } catch (nlohmann::json::parse_error& excp) {
+            // we may fail here because of partially readen message (what
+            // means gateway dropped our connection).
+            recoverConnection();
+        }   
 
-    void GatewayClient::sendHeartbeat() {
-        if (unansweredHeartbeats >= 2) {
-            DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
-            disconnectFromGateway(5000);
-            resumeGatewaySession(lastUsedGatewayUrl, token, sessionId_, lastSeqNumber_);
-            return;
-        }
+        if (poll) asyncPoll();
+    });
+}
 
-        DEBUG_MSG("Gateway heartbeat sent.");
-        sendGatewayMsg(GatewayOpCodes::Heartbeat, nlohmann::json(lastSeqNumber_));
+void GatewayClient::processMessage(const nlohmann::json& message) {
+    switch (message["op"].get<int>()) {
+    case OpCode::EventDispatch:
+        DEBUG_MSG(std::string("Gateway Event: t=") + message["t"].get<std::string>() +
+                  " s=" + std::to_string(message["s"].get<int>()));
+        lastSequenceNumber_ = message["s"];
+ 
+        eventDispatcher.dispatchEvent(message["t"].get<std::string>(), message["d"]);
+        break;
+    case OpCode::HeartbeatAck:
+        DEBUG_MSG("Gateway heartbeat answered.");
+        --unansweredHeartbeats;
+        break;
+    case OpCode::Heartbeat:
+        DEBUG_MSG("Received heartbeat request.");
+        sendMessage(OpCode::Heartbeat, nlohmann::json(lastSequenceNumber_));
         ++unansweredHeartbeats;
+        break;
+    case OpCode::Reconnect:
+        DEBUG_MSG("Gateway asked us to reconnect...");
+        // It's not recoverConnection duplicate, here Invalid Session error during
+        // resume is real error, not just 'start new session instead'.
+        disconnect();
+        resume(lastGatewayUrl_, sessionId_, lastSequenceNumber_);
+        break;
+    case OpCode::InvalidSession:
+        DEBUG_MSG("Invalid session error.");
+        throw GatewayError("Invalid session.");
+        break;
+    default:
+        DEBUG_MSG("Unexpected gateway message.");
+        DEBUG_MSG(message);
     }
+}
+
+void GatewayClient::sendMessage(GatewayClient::OpCode opCode, const nlohmann::json& payload, const std::string& t) {
+    nlohmann::json message = {
+        { "op", opCode  },
+        { "d",  payload },
+    };
+
+    if (!t.empty()) {
+        message["t"] = t;
+    }
+
+    std::string messageString = message.dump();
+    gatewayConnection->sendMessage(std::vector<uint8_t>(messageString.begin(), messageString.end()));
+}
+
+void GatewayClient::asyncHeartbeat() {
+    heartbeatTimer.cancel();
+    heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
+    heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
+        if (ec == boost::asio::error::operation_aborted) return;
+        if (!heartbeat) return;
+
+        sendHeartbeat();
+
+        asyncHeartbeat();
+    });
+}
+
+void GatewayClient::sendHeartbeat() {
+    if (unansweredHeartbeats >= 2) {
+        DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
+        recoverConnection();
+        return;
+    }
+
+    DEBUG_MSG("Gateway heartbeat sent.");
+    sendMessage(OpCode::Heartbeat, nlohmann::json(lastSequenceNumber_));
+    ++unansweredHeartbeats;
+}
 
 } // namespace Hexicord

@@ -61,7 +61,7 @@ namespace Hexicord {
         RestClient& operator=(RestClient&&) = default;
 
         /**
-         *  Returns gateway URL to be used with \ref connectToGateway.
+         *  Returns gateway URL to be used with \ref GatewayClient::connect.
          *
          *  RestClient expected to cache this URL and request new only
          *  if fails to use old one.
@@ -71,7 +71,7 @@ namespace Hexicord {
         std::string getGatewayUrl();
 
         /**
-         *  Return gateway URL to be used with \ref connectToGateway
+         *  Return gateway URL to be used with \ref GatewayClient::connect.
          *  if client is a bot. Also returns recommended shards count.
          *
          *  \returns std::pair with gateway URL (first) and recommended
@@ -104,8 +104,6 @@ namespace Hexicord {
          *
          *  \throws RESTError on API error.
          *  \throws boost::system::system_error on connection problem.
-         *
-         *  \sa \ref sendGatewayMsg
          *
          *  \ingroup REST
          */
@@ -760,7 +758,7 @@ namespace Hexicord {
          *  should be avoided unless really necessary since it can affect
          *  behavior of REST methods.
          *
-         *  \sa \ref sendRestRequest \ref gatewayPathSuffix
+         *  \sa \ref sendRestRequest
          *  \ingroup REST
          */
         std::string restBasePath = "/api/v6";

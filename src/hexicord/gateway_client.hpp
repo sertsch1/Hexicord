@@ -1,3 +1,24 @@
+// Hexicord - Discord API library for C++11 using boost libraries.
+// Copyright © 2017 Maks Mazurov (fox.cpp) <foxcpp@yandex.ru>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+// OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #ifndef HEXICORD_GATEWAY_CLIENT_HPP
 #define HEXICORD_GATEWAY_CLIENT_HPP
 
@@ -25,192 +46,199 @@ namespace Hexicord {
         const int disconnectCode;
     };
 
-    /**
-     *  Op-codes valid for gateway API.
-     */
-    namespace GatewayOpCodes {
-        /// Event dispatch (sent by server).
-        constexpr int EventDispatch = 0;
-        /// Ping checking (sent by client).
-        constexpr int Heartbeat = 1;
-        /// Client handshake (sent by client).
-        constexpr int Identify = 2;
-        /// Client status update (sent by server).
-        constexpr int StatusUpdate = 3;
-        /// Join/move/leave voice channels (sent by client).
-        constexpr int VoiceStateUpdate = 4;
-        /// Voice ping checking (sent by client).
-        constexpr int VoiceServerPing = 5;
-        /// Resume closed connection (sent by client).
-        constexpr int Resume = 6;
-        /// Request client to reconnect (sent by server).
-        constexpr int Reconnect = 7;
-        /// Request guild members (sent by client).
-        constexpr int RequestGuildMembers = 8;
-        /// Notify client they have an invalid session id.
-        constexpr int InvalidSession = 9;
-        /// Sent immediately after connecting (sent by server).
-        constexpr int Hello = 10;
-        /// Sent immediately following a client heartbeat that was received (sent by server).
-        constexpr int HeartbeatAck = 11;
-    }
 
     class GatewayClient {
-
-
+    public:
         static constexpr int NoSharding = -1;
+        static constexpr int NoCloseEvent = -1;
 
         GatewayClient(boost::asio::io_service& ioService, const std::string& token); 
-
         ~GatewayClient();
 
-        /**
-         *  User-induced resume of gateway session. Can be useful if you know that 
-         *  connection is lost because of bot crash for example and want to recover
-         *  and replay lost events.
-         *
-         *  \param gatewayUrl       gateway URL to use.
-         *  \param token            token used in resuming session.
-         *  \param sessionId        resuming session ID.
-         *  \param lastSeq          sequence number of last received event.
-         *
-         *  To resume session from this Client instance you can call resumeGateway as following:
-         *  ```cpp
-         *      client.resumeGatewaySession(client.lastGatewayUrl(), client.token, client.sessionId(), client.lastSeqNumber());
-         *  ```
-         *
-         *  \sa \ref connectToGateway
-         */
-        void resumeGatewaySession(const std::string& gatewayUrl, const std::string& token, std::string sessionId, int lastSeq);
+        GatewayClient(const GatewayClient&) = delete;
+        GatewayClient(GatewayClient&&) = default;
+
+        GatewayClient& operator=(const GatewayClient&) = delete;
+        GatewayClient& operator=(GatewayClient&&) = default;
 
         /**
-         *  Connect to gateway, identify and start listening for events.
+         * Connect and identify to gateway.
          *
-         *  \note Pass NoSharding to shardId and shardCount if you're creating regular client (not bot).
+         * Either this method of \ref resume should be called and succeed
+         * in order to start event receiving. You should pass gateway URL
+         * received by calling to \ref RestClient::getGatewayUrl or
+         * \ref RestClient::getGatewayUrlBot.
          *
-         *  \param gatewayUrl       gateway url string acquired by calling getGatewayUrl.
-         *  \param shardId          this shard id, use NoSharding if you don't use sharding.
-         *                          Defaults to NoSharding.
-         *  \param shardCount       total shards count, use Flags::NoSharding if you don't use sharding.
-         *                          Defaults to NoSharding.
-         *  \param initialPresense  JSON presense object. 
-         *                          See https://discordapp.com/developers/docs/topics/gateway#gateway-status-update
-         *                          Defaults to online status without game.
+         * Also if your client is a bot and you're using sharding, then you
+         * need to pass shardId and shardCount, otherwise you should leave both
+         * parameters to NoSharding.
          *
-         *  \sa \ref resumeGatewaySession
+         * initialPresense specifies status to set instantly after connection,
+         * defaults to "online" without game playing.
+         *
+         * This method will throw GatewayError if there is something
+         * wrong with identify data (for example, revoked or invalid token).
+         *
+         * This method will throw ConnectionError if failed to open connection. 
+         * But it's unlikely to happen because most ASIO operations have really
+         * long timeout.
+         *
+         * \sa \ref GatewayClient::resume 
+         *     \ref RestClient::getGatewayUrl
+         *     \ref RestClient::getGatewayUrlBot
+         *
+         * \internal
+         * **Implementation**
+         *
+         * Planned implementation:
+         * If connection is not open - open it, send identify payload, wait for first
+         * gateway message, if it's ready event - start gateway polling, if it's 
+         * invalid session error - throw exception.
          */
-        void connectToGateway(const std::string& gatewayUrl,
-                                 /* sharding info: */ int shardId = NoSharding, int shardCount = NoSharding,
-                                const nlohmann::json& initialPresense = {{ "game", nullptr },
-                                                                         { "status", "online" },
-                                                                         { "since", nullptr },
-                                                                         { "afk", false }});
+        void connect(const std::string& gatewayUrl,
+                     /* sharding info: */ int shardId = NoSharding, int shardCount = NoSharding,
+                     const nlohmann::json& initialPresense = {{ "game", nullptr },
+                                                              { "status", "online" },
+                                                              { "since", nullptr },
+                                                              { "afk", false }});
 
         /**
-         *  Send Close event and disconnect.
+         * Resume interrupted gateway session.
          *
-         *  \param code     code to pass in event payload.
+         * Can be invoked instead of \ref connect if you're recovering from
+         * bot crash and want to  receive lost events.
+         *
+         * If connection already open and client is identified - behavior
+         * is undefined.
+         *
+         * Also if your client is a bot and you're used sharding in previous
+         * session then you should pass used shardId and shardCount to this
+         * method.
+         *
+         * May throw InvalidSession exception, in this case you can't resume
+         * session and have to use \ref connect.
+         *
+         * \sa \ref GatewayClient::connect 
+         *     \ref RestClient::getGatewayUrl
+         *     \ref RestClient::getGatewayUrlBot
+         *
+         * \internal
+         * **Implementation**
+         *
+         * If connection is not open - open it, send resume event, start polling.
+         * 
+         * Planned implementation (above is current):
+         * ...block until
+         * either Resumed event or Invalid Session received.
+         * If Resumed event - start gateway polling and heartbeating.
+         * If Invalid session - throw exception.
          */
-        void disconnectFromGateway(int code = 2000);
+        void resume(const std::string& gatewayUrl, 
+                    std::string sessionId, int lastSequenceNumber,
+                    int shardId = NoSharding, int shardCount = NoSharding);
 
         /**
-         *  Send raw gateway message.
+         * Disconnect from gateway with sending Close event
+         * with specified code.
          *
-         *  \note This method can be used in case of API update that
-         *        adds new op-codes. It's better to use concrete methods
-         *        instead of raw messages if avaliable.
+         * You can also specify NoCloseEvent (-1) code to disable Close event
+         * sending, but you should note that Close event updates your bot 
+         * status to offline, so disconnecting without this event would 
+         * result in bot still "online" for a around minute.
          *
-         *  \param opCode   Gateway op-code. See \ref GatewayOpCodes namespace
-         *                  for constants.
-         *  \param payload  Event payload, defaults to {}.
-         *  \param t        Event field type, defaults to empty string.
+         * \note Close event may not be sent and error will be ignored because
+         *       this function is marked as noexcept.
          *
-         *  \sa \ref sendRestRequest
+         * \internal
+         * **Implementation** 
+         *
+         * Send close event, shutdown WebSocket, free socket.
          */
-        void sendGatewayMsg(int opCode, const nlohmann::json& payload = {}, const std::string& t = "");
+        void disconnect(int code = 2000) noexcept;
 
         /**
-         *  Can be chagned if you need different gateway API version.
-         *  Avoid unless really necessary since it can affect beavior
-         *  of event handling.
+         * Event dispatcher instance used for gateway 
+         * event dispatching.
          *
-         *  \sa \ref sendGatewayMsg \ref restBasePath
-         */
-        std::string gatewayPathSuffix = "/?v=6&encoding=json";
-
-        /**
-         *  Events dispatcher used to dispatch gateway events.
+         * Safe to reassign to default-constructed value if you want to clear
+         * handlers (however, no handlers or event polling should be running
+         * in other threads, if you have any).
+         *
+         * \internal
+         * **Implementation**
+         *
+         * \ref EventDispatcher::dispatchEvent called by processMessage if
+         * payload contains message.
          */
         EventDispatcher eventDispatcher;
 
-        /**
-         *  Used authorization token.
-         */
-        const std::string token;
+        inline const std::string& token() const {
+            return token_;
+        }
 
-        /**
-         *  Get current gateway session ID.
-         *  Empty if not connected to gateway yet.
-         *
-         *  \sa \ref resumeGatewaySession \ref lastSeqNumber \ref lastGatewayUrl
-         */
         inline const std::string& sessionId() const {
             return sessionId_;
         }
 
-        /**
-         *  Get last received event sequence number.
-         *  -1 if not connected to gateway yet.
-         *
-         *  \sa \ref resumeGatewaySession sessionId lastGatewayUrl
-         */
-        inline int lastSeqNumber() const {
-            return lastSeqNumber_;
+        inline int lastSequenceNumber() const {
+            return lastSequenceNumber_;
         }
 
-        /**
-         *  Get last used gateway URL. 
-         *  Empty if not connected to gateway yet.
-         *
-         *  \sa \ref resumeGatewaySession \ref lastSeqNumber \ref sessionId
-         */
         inline const std::string& lastGatewayUrl() const {
-            return lastUsedGatewayUrl;
+            return lastGatewayUrl_;
         }
 private:
-        int lastSeqNumber_ = -1;
+        enum OpCode {
+            EventDispatch        = 0,
+            Heartbeat            = 1,
+            Identify             = 2,
+            StatusUpdate         = 3,
+            VoiceStateUpdate     = 4,
+            VoiceServerPing      = 5,
+            Resume               = 6,
+            Reconnect            = 7,
+            RequestGuildMembers  = 8,
+            InvalidSession       = 9,
+            Hello                = 10,
+            HeartbeatAck         = 11,
+        };
 
-        inline nlohmann::json readGatewayMessage() {
-            // TODO: de-compression of compressed payload may performed here.
-            return vectorToJson(gatewayConnection->readMessage());
-        }
+        // Disconnect without Close event, try to resume session, if failed - start new session,
+        // if failed - throw InvalidSession.
+        void recoverConnection();
+
+        // Poll gateway connection using async read while poll = true, calls
+        // processMessage for each message if skipMessages is not set. 
+        // Saves last received message in lastMessage.
+        void asyncPoll();
+        bool poll = true, skipMessages = false;
+        nlohmann::json lastMessage;
         
-        static inline nlohmann::json vectorToJson(const std::vector<uint8_t>& data) {
-            return nlohmann::json::parse(std::string(data.begin(), data.end()));
-        }
+        void processMessage(const nlohmann::json& message);
+        void sendMessage(OpCode code, const nlohmann::json& payload = {}, const std::string& t = "");
 
-        static inline std::vector<uint8_t> jsonToVector(const nlohmann::json& json) {
-            std::string dump = json.dump();
-            return std::vector<uint8_t>(dump.begin(), dump.end());
-        }
+        // Calls sendHeartbeat every heartbeatIntervalMs milliseconds using 
+        // heartbeatTimer while heartbeat = true.
+        void asyncHeartbeat();
 
-        void startGatewayPolling();
-        void startGatewayHeartbeat();
+        // Heartbeat information, used by asyncHeartbeat and sendHeartbeat.
+        bool heartbeat = true; 
+        unsigned heartbeatIntervalMs;
+        unsigned unansweredHeartbeats = 0;
+        boost::asio::deadline_timer heartbeatTimer;
 
+        // Send heartbeat, if we don't have answer for two heartbeats - reconnect and return.
         void sendHeartbeat();
 
-        std::string sessionId_;
-        std::string lastUsedGatewayUrl;
-
-        unsigned heartbeatIntervalMs;
-        bool heartbeat = true, gatewayPoll = true;
-        // gateway sends us HEARTBEAT_ACK after connection (???).
-        unsigned unansweredHeartbeats = 1;
+        // Session information.
+        std::string sessionId_, lastGatewayUrl_, token_;
+        int shardId_ = NoSharding, shardCount_ = NoSharding;
+        int lastSequenceNumber_ = 0;
 
         std::unique_ptr<TLSWebSocket> gatewayConnection;
         boost::asio::io_service& ioService; // non-owning reference to I/O service.
 
-        boost::asio::deadline_timer heartbeatTimer;
+        static constexpr const char* gatewayPathSuffix = "/?v=6&encoding=json";
     };
 }
 
