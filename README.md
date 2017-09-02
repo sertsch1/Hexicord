@@ -57,25 +57,28 @@ $ make
 
 ### Usage
 
-Main class of library is `Hexicord::Client`, which maintains gateway connection, dispatches events and provides 
-interface to REST API.
+Library contain two big classes `Hexicord::GatewayClient` and `Hexicord::Restclient`.
+First maintains persistent gateway connection for real-time events, next one provides
+interface to REST API methods.
 
 There is simple echo bot:
 ```cpp
 #include <boost/asio/io_service.hpp>
-#include <hexicord/client.hpp>
+#include <hexicord/gateway_client.hpp>
+#include <hexicord/rest_client.hpp>
 
 using namespace Hexicord;
 
 int main() {
     boost::asio::io_service ioService;
-    Client client(ioService, "PUT YOUR TOKEN HERE");
+    GatewayClient gclient(ioService, "PUT YOUR TOKEN HERE");
+    RestClient    rclient(ioService, "PUT YOUR TOKEN HERE");
 
-    client.eventsDispatcher.addHandler(Event::MessageCreate, [&client](const nlohmann::json& message) {
-        client.sendMessage(message["channel_id", message["content"]);
+    gclient.eventsDispatcher.addHandler(Event::MessageCreate, [&client](const nlohmann::json& message) {
+        rclient.sendMessage(message["channel_id", message["content"]);
     });
 
-    client.connectToGateway(client.getGatewayUrlBot()); // replace with client.getGatewayUrl() if not using bot account.
+    gclient.connectToGateway(rclient.getGatewayUrlBot().first); // replace with client.getGatewayUrl() if not using bot account.
     ios.run(); 
 }
 ```
