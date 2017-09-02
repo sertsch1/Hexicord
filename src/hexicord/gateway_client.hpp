@@ -213,6 +213,8 @@ private:
         void asyncPoll();
         bool poll = true, skipMessages = false;
         nlohmann::json lastMessage;
+
+        Event eventEnumFromString(const std::string& str);
         
         void processMessage(const nlohmann::json& message);
         void sendMessage(OpCode code, const nlohmann::json& payload = {}, const std::string& t = "");

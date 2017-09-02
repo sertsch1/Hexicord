@@ -191,6 +191,48 @@ void GatewayClient::asyncPoll() {
     });
 }
 
+Event GatewayClient::eventEnumFromString(const std::string& str) {
+    static const std::unordered_map<std::string, Event> stringToEnum {
+        { "READY",                          Event::Ready                },
+        { "RESUMED",                        Event::Resumed              },
+        { "CHANNEL_CREATE",                 Event::ChannelCreate        },
+        { "CHANNEL_UPDATE",                 Event::ChannelUpdate        },
+        { "CHANNEL_DELETE",                 Event::ChannelDelete        },
+        { "CHANNEL_PINS_CHANGE",            Event::ChannelPinsChange    },
+        { "GUILD_CREATE",                   Event::GuildCreate          },
+        { "GUILD_UPDATE",                   Event::GuildUpdate          },
+        { "GUILD_DELETE",                   Event::GuildDelete          },
+        { "GUILD_BAN_ADD",                  Event::GuildBanAdd          },
+        { "GUILD_BAN_REMOVE",               Event::GuildBanRemove       },
+        { "GUILD_EMOJIS_UPDATE",            Event::GuildEmojisUpdate    },
+        { "GUILD_INTEGRATIONS_UPDATE",      Event::GuildIntegrationsUpdate },
+        { "GUILD_MEMBER_ADD",               Event::GuildMemberAdd       },
+        { "GUILD_MEMBER_REMOVE",            Event::GuildMemberRemove    },
+        { "GUILD_MEMBER_UPDATE",            Event::GuildMemberUpdate    },
+        { "GUILD_MEMBERS_CHUNK",            Event::GuildMembersChunk    },
+        { "GUILD_ROLE_CREATE",              Event::GuildRoleCreate      },
+        { "GUILD_ROLE_UPDATE",              Event::GuildRoleUpdate      },
+        { "GUILD_ROLE_DELETE",              Event::GuildRoleDelete      },
+        { "MESSAGE_CREATE",                 Event::MessageCreate        },
+        { "MESSAGE_UPDATE",                 Event::MessageUpdate        },
+        { "MESSAGE_DELETE",                 Event::MessageDelete        },
+        { "MESSAGE_DELETE_BULK",            Event::MessageDeleteBulk    },
+        { "MESSAGE_REACTION_ADD",           Event::MessageReactionAdd   },
+        { "MESSAGE_REACTION_REMOVE_ALL",    Event::MessageReactionRemoveAll },
+        { "PRESENCE_UPDATE",                Event::PresenceUpdate       },
+        { "TYPING_START",                   Event::TypingStart          },
+        { "USER_UPDATE",                    Event::UserUpdate           },
+        { "VOICE_STATE_UPDATE",             Event::VoiceStateUpdate     },
+        { "VOICE_SERVER_UPDATE",            Event::VoiceServerUpdate    },
+        { "WEBHOOKS_UPDATE",                Event::WebhooksUpdate       }
+    };
+
+    auto it = stringToEnum.find(str);
+    assert(it != stringToEnum.end());
+
+    return it->second;
+}
+
 void GatewayClient::processMessage(const nlohmann::json& message) {
     switch (message["op"].get<int>()) {
     case OpCode::EventDispatch:
@@ -198,7 +240,7 @@ void GatewayClient::processMessage(const nlohmann::json& message) {
                   " s=" + std::to_string(message["s"].get<int>()));
         lastSequenceNumber_ = message["s"];
  
-        eventDispatcher.dispatchEvent(message["t"].get<std::string>(), message["d"]);
+        eventDispatcher.dispatchEvent(eventEnumFromString(message["t"]), message["d"]);
         break;
     case OpCode::HeartbeatAck:
         DEBUG_MSG("Gateway heartbeat answered.");

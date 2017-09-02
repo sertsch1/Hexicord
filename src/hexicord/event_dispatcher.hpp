@@ -73,9 +73,8 @@ namespace Hexicord {
         using UnknownEventHandler = std::function<void(const std::string&, const nlohmann::json&)>;
 
         void addHandler(Event eventType, EventHandler handler);
-        void addUnknownEventHandler(UnknownEventHandler handler);
 
-        void dispatchEvent(const std::string& type, const nlohmann::json& payload) const;
+        void dispatchEvent(Event type, const nlohmann::json& payload) const;
     private:
         static const std::unordered_map<std::string, Event> stringToEnum;
 
