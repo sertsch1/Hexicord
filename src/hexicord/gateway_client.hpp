@@ -90,7 +90,6 @@ namespace Hexicord {
          * \internal
          * **Implementation**
          *
-         * Planned implementation:
          * If connection is not open - open it, send identify payload, wait for first
          * gateway message, if it's ready event - start gateway polling, if it's 
          * invalid session error - throw exception.
@@ -125,10 +124,7 @@ namespace Hexicord {
          * \internal
          * **Implementation**
          *
-         * If connection is not open - open it, send resume event, start polling.
-         * 
-         * Planned implementation (above is current):
-         * ...block until
+         * If connection is not open - open it, send resume event, block until
          * either Resumed event or Invalid Session received.
          * If Resumed event - start gateway polling and heartbeating.
          * If Invalid session - throw exception.
@@ -155,6 +151,17 @@ namespace Hexicord {
          * Send close event, shutdown WebSocket, free socket.
          */
         void disconnect(int code = 2000) noexcept;
+
+        /**
+         * Block until specified event type is received, then return payload of it.
+         *
+         * Still runs other event handlers and send heartbeats, so it may throw
+         * ConnectionError, GatewayError or anything you throw from handlers.
+         *
+         * It's better to use async handlers, since behavior of this method is
+         * not well defined in all cases.
+         */
+        nlohmann::json waitForEvent(Event type);
 
         /**
          * Event dispatcher instance used for gateway 
@@ -211,7 +218,7 @@ private:
         // processMessage for each message if skipMessages is not set. 
         // Saves last received message in lastMessage.
         void asyncPoll();
-        bool poll = true, skipMessages = false;
+        bool poll = false, skipMessages = false;
         nlohmann::json lastMessage;
 
         Event eventEnumFromString(const std::string& str);

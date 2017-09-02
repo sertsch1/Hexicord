@@ -88,13 +88,16 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     DEBUG_MSG("Sending Identify message...");
     sendMessage(OpCode::Identify, message);
 
-    eventDispatcher.addHandler(Event::Ready, [this](const nlohmann::json& payload) {
-        DEBUG_MSG("Connected to gateway successfully.");
+    DEBUG_MSG("Waiting for Ready event...");
+    nlohmann::json readyPayload = waitForEvent(Event::Ready);
 
-        // save session_id for usage in OP 6 Resume.
-        sessionId_ = payload["session_id"];
-    });
+    DEBUG_MSG("Got Ready event. Starting heartbeat and polling...");
+    
+    // We must dispatch this event too, because it contain
+    // information probably useful for users.
+    eventDispatcher.dispatchEvent(Event::Ready, readyPayload);
 
+    sessionId_          = readyPayload["session_id"];
     lastGatewayUrl_     = gatewayUrl;
     shardId_            = shardId;
     shardCount_         = shardCount;
@@ -129,6 +132,15 @@ void GatewayClient::resume(const std::string& gatewayUrl,
         { "seq",        lastSequenceNumber }
     });
 
+    DEBUG_MSG("Waiting for Resumed event...");
+
+    // GatewayError can be thrown here, why?
+    //  waitForEvent calls processMessage for other messages (including OP Invalid Session),
+    //  processMessage throws GatewayError if receives Invalid Session.
+    nlohmann::json resumedPayload = waitForEvent(Event::Resumed);
+    DEBUG_MSG("Got Resumed event, starting heartbeat and polling...");
+    eventDispatcher.dispatchEvent(Event::Resumed, resumedPayload);
+
     heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
     lastGatewayUrl_     = gatewayUrl;
     sessionId_          = sessionId;
@@ -153,6 +165,39 @@ void GatewayClient::disconnect(int code) noexcept {
     poll = false;
 
     gatewayConnection.reset(nullptr);
+}
+
+nlohmann::json GatewayClient::waitForEvent(Event type) {
+    DEBUG_MSG(std::string("Waiting for event, type=") + std::to_string(unsigned(type)));
+    skipMessages = true;
+
+    while (true) {
+        lastMessage = {};
+
+        if (poll) {
+            DEBUG_MSG("Running ASIO event loop iteration...");
+            ioService.run_one();
+        } else {
+            DEBUG_MSG("Reading using blocking I/O...");
+            lastMessage = nlohmann::json::parse(gatewayConnection->readMessage());
+        }
+
+        DEBUG_MSG(lastMessage.dump());
+
+        if (lastMessage.is_null() || lastMessage.empty()) continue;
+
+        if (lastMessage["op"] == OpCode::EventDispatch &&
+            eventEnumFromString(lastMessage["t"]) == type) {
+            
+            break;
+        } else {
+            processMessage(lastMessage);
+        }
+    }
+
+    skipMessages = false;
+    
+    return lastMessage["d"];
 }
 
 void GatewayClient::recoverConnection() {
@@ -239,7 +284,6 @@ void GatewayClient::processMessage(const nlohmann::json& message) {
         DEBUG_MSG(std::string("Gateway Event: t=") + message["t"].get<std::string>() +
                   " s=" + std::to_string(message["s"].get<int>()));
         lastSequenceNumber_ = message["s"];
- 
         eventDispatcher.dispatchEvent(eventEnumFromString(message["t"]), message["d"]);
         break;
     case OpCode::HeartbeatAck:
