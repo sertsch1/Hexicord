@@ -20,10 +20,12 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <hexicord/rest_client.hpp>
-#include <thread>
+#include <thread>                                     // std::this_thread::sleep_for
+#include <chrono>                                     // std::chrono::seconds, std::chrono::milliseconds
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/beast/http/error.hpp>                 // boost::beast::http::error::end_of_stream
 #include <hexicord/exceptions.hpp>
-#include <hexicord/internal/utils.hpp>
+#include <hexicord/internal/utils.hpp>                // Utils::getRatelimitDomain, Utils::domainFromUrl
 
 #if defined(HEXICORD_DEBUG_LOG)
     #include <iostream>
@@ -34,7 +36,7 @@
 
 namespace Hexicord {
     RestClient::RestClient(boost::asio::io_service& ioService, const std::string& token) 
-        : restConnection(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService))
+        : restConnection(new REST::HTTPSConnection(ioService, "discordapp.com"))
         , token(token)
         , ioService(ioService) {
 
@@ -108,7 +110,7 @@ namespace Hexicord {
             DEBUG_MSG("HTTP Connection closed by remote. Reopenning and retrying.");
             {
                 REST::HeadersMap prevHeaders = std::move(restConnection->connectionHeaders);
-                restConnection.reset(new REST::GenericHTTPConnection<BeastHTTPS>("discordapp.com", ioService));
+                restConnection.reset(new REST::HTTPSConnection(ioService, "discordapp.com"));
                 restConnection->connectionHeaders = std::move(prevHeaders);
                 restConnection->open();
             }

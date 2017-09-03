@@ -24,10 +24,10 @@
 
 #include <utility>
 #include <boost/asio/io_service.hpp>
+#include <boost/optional.hpp>
 #include <hexicord/permission.hpp>
 #include <hexicord/json.hpp>
 #include <hexicord/internal/rest.hpp>
-#include <hexicord/internal/beast_rest.hpp>
 #include <hexicord/config.hpp>
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
     #include <hexicord/ratelimit_lock.hpp>
@@ -780,7 +780,7 @@ private:
         void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
 #endif 
 
-        std::unique_ptr<REST::GenericHTTPConnection<BeastHTTPS> > restConnection;
+        std::unique_ptr<REST::HTTPSConnection> restConnection;
         boost::asio::io_service& ioService; // non-owning reference to I/O service.
     };
 }
