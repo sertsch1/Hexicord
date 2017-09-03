@@ -2,6 +2,3 @@
     path = lib/beast
     branch = master
 	url = https://github.com/boostorg/beast.git
-[submodule "lib/zlibcomplete"]
-	path = lib/zlibcomplete
-	url = https://github.com/HexwellC/zlibcomplete.git
