@@ -24,7 +24,6 @@
 #include <hexicord/internal/utils.hpp>
 #ifdef HEXICORD_ZLIB
 #include <zlc/zlibcomplete.hpp>
-#include <string>
 #endif
 
 #if defined(HEXICORD_DEBUG_LOG)
