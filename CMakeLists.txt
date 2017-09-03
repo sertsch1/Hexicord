@@ -22,9 +22,9 @@ else()
 
         if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
             include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_from_git.cmake)
-            version_from_git(GIT_EXECUTABLE ${GIT_EXECUTABLE} 
+            version_from_git(GIT_EXECUTABLE ${GIT_EXECUTABLE}
                              INCLUDE_HASH ON)
-            
+
             set(HEXICORD_DETECTED_VERSION ${VERSION})
             set(HEXICORD_SEMVER  "${SEMVER}")
         else()
@@ -97,8 +97,8 @@ if(HEXICORD_DOCS)
                       COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                       COMMENT "Generating HTML API documentation using Doxygen"
-                      SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile.in 
-                      BYPRODUCTS ${PROJECT_BINARY_DIR}/docs 
+                      SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile.in
+                      BYPRODUCTS ${PROJECT_BINARY_DIR}/docs
                       VERBATIM
                       )
 
@@ -115,6 +115,8 @@ option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 
 find_package(Boost COMPONENTS system date_time)
 find_package(OpenSSL REQUIRED)
+
+set(HEXICORD_DEPENDENCIES Threads::Threads Boost::system OpenSSL::SSL OpenSSL::Crypto)
 
 #------------------------------------------------------------------------------
 # POSIX Threads
@@ -164,6 +166,18 @@ elseif(CMAKE_VERSION VERSION_LESS 3.5)
     define_boost_target(beast)
 endif()
 
+set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} Boost::beast)
+
+#------------------------------------------------------------------------------
+# zlibcomplete
+
+option(HEXICORD_ZLIB "Use optional zlib compression" OFF)
+
+if(HEXICORD_ZLIB)
+    add_subdirectory(lib/zlibcomplete)
+    set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} zlibcomplete)
+    add_definitions(-DHEXICORD_ZLIB)
+endif()
 
 #------------------------------------------------------------------------------
 # Library Configuration
@@ -189,8 +203,6 @@ configure_file(${HEXICORD_SOURCE_DIR}/src/hexicord/config.hpp.in
 #------------------------------------------------------------------------------
 # Library
 
-set(HEXICORD_DEPENDENCIES Threads::Threads Boost::beast Boost::system OpenSSL::SSL OpenSSL::Crypto)
-
 option(HEXICORD_STATIC "Build static library." ON )
 option(HEXICORD_SHARED "Build shared library." OFF)
 
@@ -207,14 +219,17 @@ endif()
 
 target_link_libraries(hexicord PUBLIC ${HEXICORD_DEPENDENCIES})
 # to access config.hpp
-target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_BINARY_DIR})
+target_include_directories(hexicord PUBLIC
+                            ${PROJECT_SOURCE_DIR}/lib/zlibcomplete/lib
+                            ${PROJECT_SOURCE_DIR}/src
+                            ${PROJECT_BINARY_DIR})
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
 # NOT SUPPORTED until we remove references to beast from headers.
 #install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/hexicord
 #        DESTINATION include
 #        FILES_MATCHING PATTERN "*.hpp")
-#install(TARGETS hexicord 
+#install(TARGETS hexicord
 #        ARCHIVE DESTINATION lib
 #        LIBRARY DESTINATION lib)
 
@@ -223,4 +238,3 @@ option(HEXICORD_EXAMPLES "Build examples." OFF)
 if(HEXICORD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 endif()
-

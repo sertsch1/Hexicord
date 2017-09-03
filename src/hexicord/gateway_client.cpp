@@ -1,16 +1,16 @@
 // Hexicord - Discord API library for C++11 using boost libraries.
 // Copyright © 2017 Maks Mazurov (fox.cpp) <foxcpp@yandex.ru>
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included
 // in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 // OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -22,6 +22,10 @@
 #include <hexicord/gateway_client.hpp>
 #include <hexicord/config.hpp>
 #include <hexicord/internal/utils.hpp>
+#ifdef HEXICORD_ZLIB
+#include <zlc/zlibcomplete.hpp>
+#include <string>
+#endif
 
 #if defined(HEXICORD_DEBUG_LOG)
     #include <iostream>
@@ -43,15 +47,28 @@
     #define OS_STR "unix"
 #else
     #define OS_STR "unknown"
-#endif 
+#endif
 
 namespace Hexicord {
 
-GatewayClient::GatewayClient(boost::asio::io_service& ioService, const std::string& token) 
+GatewayClient::GatewayClient(boost::asio::io_service& ioService, const std::string& token)
     : ioService(ioService), token_(token), heartbeatTimer(ioService) {}
 
 GatewayClient::~GatewayClient() {
     if (gatewayConnection && gatewayConnection->isSocketOpen()) disconnect();
+}
+
+nlohmann::json GatewayClient::parseGatewayMessage(const std::vector<uint8_t>& msg) {
+#ifdef HEXICORD_ZLIB
+    if (msg[0] == '{') {
+        return nlohmann::json::parse(msg);
+    }
+    static zlibcomplete::ZLibDecompressor decompressor;
+    string input(msg.data(), msg.size());
+    return nlohmann::json::parse(decompressor.decompress(input));
+#else
+    return nlohmann::json::parse(msg);
+#endif
 }
 
 void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shardCount,
@@ -61,9 +78,9 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     if (!gatewayConnection)                 gatewayConnection.reset(new TLSWebSocket(ioService));
     if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl),
                                                                          gatewayPathSuffix, 443);
-   
+
     DEBUG_MSG("Reading Hello message...");
-    nlohmann::json gatewayHello = nlohmann::json::parse(gatewayConnection->readMessage());
+    nlohmann::json gatewayHello = parseGatewayMessage(gatewayConnection->readMessage());
 
     heartbeatIntervalMs = gatewayHello["d"]["heartbeat_interval"];
     DEBUG_MSG(std::string("Gateway heartbeat interval: ") + std::to_string(heartbeatIntervalMs) + " ms.");
@@ -92,7 +109,7 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     nlohmann::json readyPayload = waitForEvent(Event::Ready);
 
     DEBUG_MSG("Got Ready event. Starting heartbeat and polling...");
-    
+
     // We must dispatch this event too, because it contain
     // information probably useful for users.
     eventDispatcher.dispatchEvent(Event::Ready, readyPayload);
@@ -115,7 +132,7 @@ void GatewayClient::resume(const std::string& gatewayUrl,
 
     DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
               " lastSeq=" + std::to_string(lastSequenceNumber));
-   
+
     if (!gatewayConnection) gatewayConnection.reset(new TLSWebSocket(ioService));
     if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
 
@@ -123,7 +140,7 @@ void GatewayClient::resume(const std::string& gatewayUrl,
     gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
 
     DEBUG_MSG("Reading Hello message.");
-    nlohmann::json gatewayHello = nlohmann::json::parse(gatewayConnection->readMessage());
+    nlohmann::json gatewayHello = parseGatewayMessage(gatewayConnection->readMessage());
 
     DEBUG_MSG("Sending Resume message...");
     sendMessage(OpCode::Resume, {
@@ -179,7 +196,7 @@ nlohmann::json GatewayClient::waitForEvent(Event type) {
             ioService.run_one();
         } else {
             DEBUG_MSG("Reading using blocking I/O...");
-            lastMessage = nlohmann::json::parse(gatewayConnection->readMessage());
+            lastMessage = parseGatewayMessage(gatewayConnection->readMessage());
         }
 
         DEBUG_MSG(lastMessage.dump());
@@ -188,7 +205,7 @@ nlohmann::json GatewayClient::waitForEvent(Event type) {
 
         if (lastMessage["op"] == OpCode::EventDispatch &&
             eventEnumFromString(lastMessage["t"]) == type) {
-            
+
             break;
         } else {
             processMessage(lastMessage);
@@ -196,7 +213,7 @@ nlohmann::json GatewayClient::waitForEvent(Event type) {
     }
 
     skipMessages = false;
-    
+
     return lastMessage["d"];
 }
 
@@ -222,7 +239,7 @@ void GatewayClient::asyncPoll() {
             ec == boost::beast::websocket::error::closed) recoverConnection();
 
         try {
-            nlohmann::json message = nlohmann::json::parse(body);
+            nlohmann::json message = parseGatewayMessage(body);
 
             lastMessage = message;
             if (!skipMessages) processMessage(message);
@@ -230,7 +247,7 @@ void GatewayClient::asyncPoll() {
             // we may fail here because of partially readen message (what
             // means gateway dropped our connection).
             recoverConnection();
-        }   
+        }
 
         if (poll) asyncPoll();
     });
