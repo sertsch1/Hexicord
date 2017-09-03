@@ -1,5 +1,5 @@
 #ifndef HEXICORD_REST_HPP
-#define HEXICORD_REST_HPP
+#define HEXICORD_REST_HPP 
 
 #include <string>                     // std::string
 #include <vector>                     // std::vector
@@ -59,6 +59,17 @@ namespace Hexicord { namespace REST {
         boost::asio::ip::tcp::resolver::iterator resolutionResult;
         bool alive = false;
     };
+
+    struct MultipartEntity {
+        std::string name;
+        std::string filename;
+        HeadersMap additionalHeaders;
+
+        std::vector<uint8_t> body;
+    };
+
+    HTTPRequest buildMultipartRequest(const std::vector<MultipartEntity&> elements);
+
 }} // namespace Hexicord::REST
 
 #endif // HEXICORD_REST_HPP 

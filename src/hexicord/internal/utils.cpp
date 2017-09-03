@@ -27,6 +27,7 @@
 #include <cassert>      // assert
 #include <sstream>      // std::ostringstream
 #include <iomanip>      // std::setw
+#include <cstdlib>      // std::rand, std::rand
 
 namespace Hexicord { namespace Utils {
     namespace Magic {
@@ -215,5 +216,23 @@ namespace Hexicord { namespace Utils {
             }
         }
         return ratelimitDomain;
+    }
+
+    RandomSeedGuard::RandomSeedGuard() {
+        static bool randomSeeded = false;
+        if (!randomSeeded) std::srand(std::time(nullptr));
+    }
+
+    std::string randomAsciiString(unsigned length) {
+        RandomSeedGuard randGuard;
+
+        constexpr char const asciiCharacters[] = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        std::string result;
+        result.reserve(length);
+        while (result.size() != length) {
+            result.push_back(asciiCharacters[std::rand() % sizeof(asciiCharacters)]);
+        }
+        return result;
     }
 }} // namespace Hexicord::Utils

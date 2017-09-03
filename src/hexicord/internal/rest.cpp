@@ -7,6 +7,7 @@
 #include <boost/beast/http/read.hpp>                // boost::beast::http::read
 #include <boost/beast/http/vector_body.hpp>         // boost::beast::http::vecor_body
 #include <boost/beast/core/flat_buffer.hpp>         // boost::beast::flat_buffer
+#include <hexicord/internal/utils.hpp>              // Utils::randomAsciiString
 
 namespace ssl = boost::asio::ssl;
 using     tcp = boost::asio::ip::tcp;
@@ -125,4 +126,42 @@ HTTPResponse HTTPSConnection::request(const HTTPRequest& request) {
     return responseStruct;
 }
 
-}} // namespace Hexicord
+HTTPRequest buildMultipartRequest(const std::vector<MultipartEntity>& elements) {
+    HTTPRequest request;
+    std::ostringstream oss;
+
+    std::string boundary = Utils::randomAsciiString(64);
+
+    request.headers["Content-Type"] = std::string("multipart/form-data; boundary=") + boundary;
+
+    for (auto it = elements.begin(); it != elements.end(); ++it) {
+        const auto& element = *it;
+
+        oss << "--" << boundary << "\r\n"
+            << "Content-Disposition: form-data; name=\"" << element.name << "\"";
+        if (!element.filename.empty()) {
+            oss << "; filename=\"" << element.filename;
+        }
+        oss << "\r\n";
+        for (const auto& header : element.additionalHeaders) {
+            oss << header.first << ": " << header.second << "\r\n";
+        }
+        oss << "\r\n";
+        for (uint8_t byte : element.body) {
+            oss << byte;
+        }
+        oss << "\r\n";
+
+        oss << "--" << boundary;
+        if (it == elements.end() - 1) {
+            oss << "--";
+        }
+        oss << "\r\n";
+    }
+
+    std::string resultStr = oss.str();
+    request.body = std::vector<uint8_t>(resultStr.begin(), resultStr.end());
+    return request;
+}
+
+}} // namespace Hexicord::REST

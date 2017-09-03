@@ -60,6 +60,11 @@ namespace Hexicord { namespace Utils {
      * Extract part of URL that have "per-route" ratelimit.
      */
     std::string getRatelimitDomain(const std::string& path);
+
+    // Construct it somewhere to make sure PRNG is initialized.
+    struct RandomSeedGuard { RandomSeedGuard(); };
+
+    std::string randomAsciiString(unsigned length);
 }} // namespace Hexicord::Utils
 
 #endif // HEXICORD_UTILS_HPP
