@@ -753,26 +753,18 @@ namespace Hexicord {
         /// @} REST_invites
         /// @} REST
 
-        /**
-         *  Can be changed if you need different API version but such changes
-         *  should be avoided unless really necessary since it can affect
-         *  behavior of REST methods.
-         *
-         *  \sa \ref sendRestRequest
-         *  \ingroup REST
-         */
-        std::string restBasePath = "/api/v6";
 
 #ifdef HEXICORD_RATELIMIT_PREDICTION
         RatelimitLock ratelimitLock;
 #endif
 
-private:
         /**
          *  Used authorization token.
          */
         const std::string token;
 private:
+        std::string restBasePath = "/api/v6";
+
         // Throws RESTError or inherited class.
         void throwRestError(const REST::HTTPResponse& response, const nlohmann::json& payload);
 
