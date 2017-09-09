@@ -240,6 +240,7 @@ private:
         void sendHeartbeat();
 
         // Session information.
+        bool activeSession = false; // true if we connected and everything is working.
         std::string sessionId_, lastGatewayUrl_, token_;
         int shardId_ = NoSharding, shardCount_ = NoSharding;
         int lastSequenceNumber_ = 0;

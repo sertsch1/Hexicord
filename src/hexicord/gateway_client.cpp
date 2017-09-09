@@ -51,13 +51,16 @@ GatewayClient::GatewayClient(boost::asio::io_service& ioService, const std::stri
     : ioService(ioService), token_(token), heartbeatTimer(ioService) {}
 
 GatewayClient::~GatewayClient() {
-    if (gatewayConnection && gatewayConnection->isSocketOpen()) disconnect();
+    if (gatewayConnection && activeSession && gatewayConnection->isSocketOpen()) disconnect(2000);
 }
 
 void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shardCount,
                             const nlohmann::json& initialPresense) {
 
-    DEBUG_MSG("Make sure connection is up...");
+    if (activeSession) disconnect(2000);
+    activeSession = false;
+
+    DEBUG_MSG("Connecting...");
     if (!gatewayConnection)                 gatewayConnection.reset(new TLSWebSocket(ioService));
     if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl),
                                                                          gatewayPathSuffix, 443);
@@ -103,6 +106,8 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     shardCount_         = shardCount;
     lastSequenceNumber_ = 0;
 
+    activeSession = true;
+
     heartbeat = true;
     asyncHeartbeat();
     poll = true;
@@ -115,6 +120,8 @@ void GatewayClient::resume(const std::string& gatewayUrl,
 
     DEBUG_MSG(std::string("Resuming interrupted gateway session. sessionId=") + sessionId +
               " lastSeq=" + std::to_string(lastSequenceNumber));
+
+    if (activeSession) disconnect(2000);
    
     if (!gatewayConnection) gatewayConnection.reset(new TLSWebSocket(ioService));
     if (!gatewayConnection->isSocketOpen()) gatewayConnection->handshake(Utils::domainFromUrl(gatewayUrl), gatewayPathSuffix, 443);
@@ -146,6 +153,8 @@ void GatewayClient::resume(const std::string& gatewayUrl,
     sessionId_          = sessionId;
     lastSequenceNumber_ = lastSequenceNumber;
 
+    activeSession = true;
+
     heartbeat = true;
     asyncHeartbeat();
     poll = true;
@@ -165,6 +174,8 @@ void GatewayClient::disconnect(int code) noexcept {
     poll = false;
 
     gatewayConnection.reset(nullptr);
+
+    activeSession = false;
 }
 
 nlohmann::json GatewayClient::waitForEvent(Event type) {
@@ -176,6 +187,11 @@ nlohmann::json GatewayClient::waitForEvent(Event type) {
 
         if (poll) {
             DEBUG_MSG("Running ASIO event loop iteration...");
+            assert(activeSession);
+            // ^ We assert here instead of beginning of method
+            // because waitForEvent used before assigning
+            // activeSession = true in connect.
+
             ioService.run_one();
         } else {
             DEBUG_MSG("Reading using blocking I/O...");
@@ -213,6 +229,8 @@ void GatewayClient::recoverConnection() {
 }
 
 void GatewayClient::asyncPoll() {
+    assert(activeSession);
+
     DEBUG_MSG("Polling gateway messages...");
     gatewayConnection->asyncReadMessage([this](TLSWebSocket&, const std::vector<uint8_t>& body,
                                                boost::system::error_code ec) {
@@ -227,6 +245,10 @@ void GatewayClient::asyncPoll() {
             lastMessage = message;
             if (!skipMessages) processMessage(message);
         } catch (nlohmann::json::parse_error& excp) {
+            DEBUG_MSG("Corrupted message, assuming connection error, reconnecting...");
+            DEBUG_MSG(excp.what());
+            DEBUG_MSG(std::string(body.begin(), body.end()));
+
             // we may fail here because of partially readen message (what
             // means gateway dropped our connection).
             recoverConnection();
@@ -287,15 +309,18 @@ void GatewayClient::processMessage(const nlohmann::json& message) {
         eventDispatcher.dispatchEvent(eventEnumFromString(message["t"]), message["d"]);
         break;
     case OpCode::HeartbeatAck:
+        assert(activeSession);
         DEBUG_MSG("Gateway heartbeat answered.");
         --unansweredHeartbeats;
         break;
     case OpCode::Heartbeat:
+        assert(activeSession);
         DEBUG_MSG("Received heartbeat request.");
         sendMessage(OpCode::Heartbeat, nlohmann::json(lastSequenceNumber_));
         ++unansweredHeartbeats;
         break;
     case OpCode::Reconnect:
+        assert(activeSession);
         DEBUG_MSG("Gateway asked us to reconnect...");
         // It's not recoverConnection duplicate, here Invalid Session error during
         // resume is real error, not just 'start new session instead'.
@@ -340,6 +365,7 @@ void GatewayClient::asyncHeartbeat() {
 }
 
 void GatewayClient::sendHeartbeat() {
+    assert(activeSession);
     if (unansweredHeartbeats >= 2) {
         DEBUG_MSG("Missing gateway heartbeat answer. Reconnecting...");
         recoverConnection();
