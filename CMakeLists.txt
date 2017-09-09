@@ -22,9 +22,9 @@ else()
 
         if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
             include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_from_git.cmake)
-            version_from_git(GIT_EXECUTABLE ${GIT_EXECUTABLE} 
+            version_from_git(GIT_EXECUTABLE ${GIT_EXECUTABLE}
                              INCLUDE_HASH ON)
-            
+
             set(HEXICORD_DETECTED_VERSION ${VERSION})
             set(HEXICORD_SEMVER  "${SEMVER}")
         else()
@@ -91,14 +91,14 @@ if(HEXICORD_DOCS)
         # Don't have to put everything else in else branch because FATAL_ERROR aborts configuration.
     endif()
 
-    configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
 
     add_custom_target(doc ALL
                       COMMAND ${DOXYGEN_EXECUTABLE} ${PROJECT_BINARY_DIR}/Doxyfile
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                       COMMENT "Generating HTML API documentation using Doxygen"
-                      SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile.in 
-                      BYPRODUCTS ${PROJECT_BINARY_DIR}/docs 
+                      SOURCES ${PROJECT_SOURCE_DIR}/Doxyfile.in
+                      BYPRODUCTS ${PROJECT_BINARY_DIR}/docs
                       VERBATIM
                       )
 
@@ -214,7 +214,7 @@ target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 #install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/hexicord
 #        DESTINATION include
 #        FILES_MATCHING PATTERN "*.hpp")
-#install(TARGETS hexicord 
+#install(TARGETS hexicord
 #        ARCHIVE DESTINATION lib
 #        LIBRARY DESTINATION lib)
 
@@ -223,4 +223,3 @@ option(HEXICORD_EXAMPLES "Build examples." OFF)
 if(HEXICORD_EXAMPLES)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 endif()
-
