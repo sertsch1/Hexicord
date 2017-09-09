@@ -149,7 +149,11 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
             { "browser", "hexicord" },
             { "device", "hexicord" }
         }},
-        { "compress", false }, // TODO: compression support
+#ifdef HEXICORD_ZLIB
+        { "compress", true}
+#else
+        { "compress", false },
+#endif
         { "large_threshold", 250 }, // should be changeble
         { "presense", initialPresense }
     };
