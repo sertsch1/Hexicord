@@ -174,6 +174,21 @@ namespace Hexicord { namespace Utils {
         return resultStream.str();
     }
 
+    std::string makeQueryString(const std::unordered_map<std::string, std::string>& queryVariables) {
+        std::string queryString;
+        if (!queryVariables.empty()) {
+            queryString += '?';
+            for (auto queryParam : queryVariables) {
+                queryString += queryParam.first;
+                queryString += '=';
+                queryString += Utils::urlEncode(queryParam.second);
+                queryString += '&';
+            }
+            queryString.pop_back(); // remove extra & at end.
+        }
+        return queryString;
+    }
+
     std::vector<std::string> split(const std::string& str, char delimiter) {
         std::istringstream iss(str);
         std::vector<std::string> result;

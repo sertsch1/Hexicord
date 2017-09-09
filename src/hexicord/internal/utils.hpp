@@ -25,6 +25,7 @@
 #include <vector>
 #include <string>
 #include <istream>
+#include <unordered_map>
 
 /**
  *  Reusable code snippets.
@@ -51,6 +52,7 @@ namespace Hexicord { namespace Utils {
     std::string base64Encode(const std::vector<uint8_t>& bytes);
 
     std::string urlEncode(const std::string& raw);
+    std::string makeQueryString(const std::unordered_map<std::string, std::string>& queryVariables);
 
     std::vector<std::string> split(const std::string& str, char delimiter);
 

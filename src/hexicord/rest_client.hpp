@@ -101,6 +101,8 @@ namespace Hexicord {
          *  \param endpoint  endpoint URL relative to base URL (including leading slash).
          *  \param payload   JSON payload, pass empty object (default) if none.
          *  \param query     GET request query.
+         *  \param multipart Pass one or more MultipartEntity to perform multipart request.
+         *                   If payload is also present, it will be first entity.
          *
          *  \throws RESTError on API error.
          *  \throws boost::system::system_error on connection problem.
@@ -108,7 +110,9 @@ namespace Hexicord {
          *  \ingroup REST
          */
         nlohmann::json sendRestRequest(const std::string& method, const std::string& endpoint,
-                                       const nlohmann::json& payload = {}, const std::unordered_map<std::string, std::string>& query = {});
+                                       const nlohmann::json& payload = {},
+                                       const std::unordered_map<std::string, std::string>& query = {},
+                                       const std::vector<REST::MultipartEntity>& multipart = {});
 
         /** \defgroup REST REST methods
          *
@@ -763,7 +767,11 @@ namespace Hexicord {
          */
         const std::string token;
 private:
-        std::string restBasePath = "/api/v6";
+        static constexpr const char* restBasePath = "/api/v6";
+
+        void prepareRequestBody(REST::HTTPRequest& request,
+                                const nlohmann::json& payload,
+                                const std::vector<REST::MultipartEntity>& elements);
 
         // Throws RESTError or inherited class.
         void throwRestError(const REST::HTTPResponse& response, const nlohmann::json& payload);

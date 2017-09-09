@@ -122,7 +122,6 @@ HTTPResponse HTTPSConnection::request(const HTTPRequest& request) {
     }
     alive = (response["Connection"].to_string() != "close");
     
-
     return responseStruct;
 }
 
@@ -130,7 +129,9 @@ HTTPRequest buildMultipartRequest(const std::vector<MultipartEntity>& elements) 
     HTTPRequest request;
     std::ostringstream oss;
 
-    std::string boundary = Utils::randomAsciiString(64);
+    // XXX: There is some reason for 400 Bad Request coming from Utils::randomAsciiString.
+    // std::string boundary = Utils::randomAsciiString(64);
+    std::string boundary = "LPN3rnFZYl77S6RI2YHlqA1O1NbvBDelp1lOlMgjSm9VaOV7ufw5fh3qvy2JUq";
 
     request.headers["Content-Type"] = std::string("multipart/form-data; boundary=") + boundary;
 
@@ -140,7 +141,7 @@ HTTPRequest buildMultipartRequest(const std::vector<MultipartEntity>& elements) 
         oss << "--" << boundary << "\r\n"
             << "Content-Disposition: form-data; name=\"" << element.name << "\"";
         if (!element.filename.empty()) {
-            oss << "; filename=\"" << element.filename;
+            oss << "; filename=\"" << element.filename << '"';
         }
         oss << "\r\n";
         for (const auto& header : element.additionalHeaders) {

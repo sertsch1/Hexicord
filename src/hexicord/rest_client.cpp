@@ -60,37 +60,20 @@ namespace Hexicord {
     }
 
     nlohmann::json RestClient::sendRestRequest(const std::string& method, const std::string& endpoint,
-                                           const nlohmann::json& payload, const std::unordered_map<std::string, std::string>& query) {
-        if (!restConnection->isOpen()) {
-            restConnection->open();
-        }
+                                           const nlohmann::json& payload,
+                                           const std::unordered_map<std::string, std::string>& query,
+                                           const std::vector<REST::MultipartEntity>& multipart) {
 
-        // consturct query string if any.
-        std::string queryString;
-        if (!query.empty()) {
-            queryString += '?';
-            for (auto queryParam : query) {
-                queryString += queryParam.first;
-                queryString += '=';
-                queryString += Utils::urlEncode(queryParam.second);
-                queryString += '&';
-            }
-            queryString.pop_back(); // remove extra & at end.
-        }
+        if (!restConnection->isOpen()) restConnection->open();
 
         REST::HTTPRequest request;
 
         request.method  = method;
-        request.path    = restBasePath + endpoint + queryString;
+        request.path    = restBasePath + endpoint + Utils::makeQueryString(query);
         request.version = 11;
-        if (!payload.is_null() && !payload.empty()) {
-            request.headers.insert({ "Content-Type", "application/json" });
 
-            {
-                std::string jsonStr = payload.dump();
-                request.body = std::vector<uint8_t>(jsonStr.begin(), jsonStr.end());
-            }
-        }
+        prepareRequestBody(request, payload, multipart);
+
         request.headers.insert({ "Accept", "application/json" });
 
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
@@ -100,7 +83,7 @@ namespace Hexicord {
 
         REST::HTTPResponse response;
         try {
-            DEBUG_MSG(std::string("Sending REST request: ") + method + " " + endpoint + queryString + " " + payload.dump());
+            DEBUG_MSG(std::string("Sending REST request: ") + method + " " + request.path + " " + payload.dump());
             response = restConnection->request(request);
         } catch (boost::system::system_error& excp) {
             if (excp.code() != boost::beast::http::error::end_of_stream &&
@@ -115,7 +98,7 @@ namespace Hexicord {
                 restConnection->open();
             }
             
-            return sendRestRequest(method, endpoint, payload, query);
+            return sendRestRequest(method, endpoint, payload, query, multipart);
         }
 
         if (response.body.empty()) {
@@ -474,6 +457,43 @@ namespace Hexicord {
         if (unique)               payload["unique"]               = true;
 
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
+    }
+
+    void RestClient::prepareRequestBody(REST::HTTPRequest& request,
+                                        const nlohmann::json& payload,
+                                        const std::vector<REST::MultipartEntity>& elements) {
+
+
+        if (elements.empty()) {
+            if (payload.is_null() || payload.empty()) return;
+
+            request.headers["Content-Type"] = "application/json";
+
+            std::string jsonStr = payload.dump();
+            std::vector<uint8_t> payloadBytes(jsonStr.begin(), jsonStr.end());
+
+            request.body = payloadBytes;
+        } else {
+            std::vector<REST::MultipartEntity> actualMultipartElements;
+            actualMultipartElements.reserve(elements.size() + 1);
+
+            // We add JSON payload as first element.
+            if (!payload.is_null() && !payload.empty()) {
+                std::string bodyStr = Utils::urlEncode(payload.dump());
+                actualMultipartElements.push_back({
+                        /* name:              */ "payload_json",
+                        /* filename:          */ "",
+                        /* additionalHeaders: */ {{ "Content-Type", "application/json" }},
+                        /* body               */ std::vector<uint8_t>(bodyStr.begin(), bodyStr.end())
+                        });
+            }
+
+            for (const auto& element : elements) actualMultipartElements.push_back(element);
+
+            REST::HTTPRequest tempRequest = REST::buildMultipartRequest(actualMultipartElements);
+            request.headers["Content-Type"] = tempRequest.headers["Content-Type"];
+            request.body                    = tempRequest.body;
+        }
     }
 
     void RestClient::throwRestError(const REST::HTTPResponse& response,
