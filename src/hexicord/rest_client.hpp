@@ -36,10 +36,37 @@
 /**
  *  \file client.hpp
  *   
- *   Defines \ref Hexicord::RestClient class, main class of library.
+ *   Defines \ref Hexicord::RestClient class and some helper data types.
  */
 
 namespace Hexicord {
+    /**
+     * Struct for (filename, bytes) pair.
+     */
+    struct File {
+        /**
+         * Read file specified by `path` to \ref bytes.
+         * Last component of path used as filename.
+         */
+        File(const std::string& path);
+        /**
+         * Read stream until EOF to \ref bytes.
+         */
+        File(const std::string& filename, std::istream&& stream);
+        /**
+         * Use passed vector as file contents.
+         */
+        File(const std::string& filename, const std::vector<uint8_t>& bytes);
+
+        /**
+         * Convert File object to multipart entity.
+         */
+        REST::MultipartEntity toMultipartEntity() const;
+
+        const std::string filename;
+        const std::vector<uint8_t> bytes;
+    };
+
     class RestClient {
     public:
         /**
@@ -354,24 +381,46 @@ namespace Hexicord {
          */
 
         /**
-         *  Post a message to a guild text or DM channel. 
+         * Send a text message to a text channel (or DM).
          *
-         *  Requires SEND_MESSAGE permission if operating on guild channel.
-         *  Fires MessageCreate event.
+         * Requires SEND_MESSAGE permission if operating on guild channel.
+         * Fires MessageCreate event.
          *
-         *  \param channelId    Snowflake ID of target channel.
-         *  \param text         The message text content (up to 2000 characters).
-         *  \param tts          Set whatever this is TTS message. Default is false.
-         *  \param nonce        Nonce that can be used for optimistic message sending. Default is none.
+         * You can set tts to true, if you want to send
+         * Text-To-Speech messsage.
          *
-         *  \throws RESTError on API error (missing permission, invalid ID).
-         *  \throws InvalidParameter if text is bigger than 2000 characters.
-         *  \throws boost::system::system_error on connection problem (rare).
+         * \throws RESTError on API error (missing permission, invalid ID).
+         * \throws InvalidParameter if text is bigger than 2000 characters.
+         * \throws boost::system::system_error on connection problem (rare).
          *
-         *  \returns Message object that represents sent message.
+         * \returns Message object that represents sent message.
+         *
+         * \sa \ref sendFile \ref sendRichMessage
          */
-        nlohmann::json sendMessage(uint64_t channelId, const std::string& text, bool tts = false,
-                                  boost::optional<uint64_t> nonce = boost::none);
+        nlohmann::json sendTextMessage(uint64_t channelId, const std::string& text, bool tts = false);
+
+        /**
+         * Send a message with a file to a text channel (or DM).
+         *
+         * \warning Regular accounts and bots have a limit of file size (8 MB),
+         *          user accounts with Discord Nitro have 50 MB limit. If you send
+         *          a file bigger than allowed, you will get RESTError with 40005 code.
+         *
+         * \throws RESTError on API error (missing permission, invalid ID, too large file).
+         * \throws boost::system::system_error on connection problem (rare).
+         *
+         * \returns Message object that represents sent message.
+         *
+         * \sa \ref sendTextMessage \ref sendRichMessage
+         */
+        nlohmann::json sendFile(uint64_t channelId, const File& file);
+
+        /**
+         * Same as \ref sendFile.
+         */
+        inline nlohmann::json sendImage(uint64_t channelId, const File& image) {
+            return sendFile(channelId, image);
+        }
 
         /**
          *  Edit a previously sent message. You can only edit messages that have

@@ -22,6 +22,7 @@
 #include <hexicord/rest_client.hpp>
 #include <thread>                                     // std::this_thread::sleep_for
 #include <chrono>                                     // std::chrono::seconds, std::chrono::milliseconds
+#include <fstream>                                    // std::ifstream
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/beast/http/error.hpp>                 // boost::beast::http::error::end_of_stream
 #include <hexicord/exceptions.hpp>
@@ -34,7 +35,36 @@
     #define DEBUG_MSG(msg)
 #endif
 
+#if _WIN32
+    #define PATH_DELIMITER '\\'
+#elif !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+    #define PATH_DELIMITER '/'
+#endif
+
 namespace Hexicord {
+    File::File(const std::string& path) 
+        : filename(Utils::split(path, PATH_DELIMITER).back())
+        , bytes(std::istreambuf_iterator<char>(std::ifstream(path).rdbuf()),
+                std::istreambuf_iterator<char>()) {}
+
+    File::File(const std::string& filename, std::istream&& stream)
+        : filename(filename)
+        , bytes(std::istreambuf_iterator<char>(stream.rdbuf()),
+                std::istreambuf_iterator<char>()) {}
+
+    File::File(const std::string& filename, const std::vector<uint8_t>& bytes)
+        : filename(filename)
+        , bytes(bytes) {}
+
+    REST::MultipartEntity File::toMultipartEntity() const {
+        return {
+                /* name:              */ filename,
+                /* filename:          */ filename,
+                /* additionalHeaders: */ {},
+                /* body:              */ bytes
+               };
+    }
+
     RestClient::RestClient(boost::asio::io_service& ioService, const std::string& token) 
         : restConnection(new REST::HTTPSConnection(ioService, "discordapp.com"))
         , token(token)
@@ -281,19 +311,19 @@ namespace Hexicord {
         sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/typing");
     }
 
-    nlohmann::json RestClient::sendMessage(uint64_t channelId, const std::string& text, bool tts,
-                                       boost::optional<uint64_t> nonce) {
-        if (text.size() > 2000) {
-            throw InvalidParameter("text", "text out of range (should be 0-1024).");
-        }
-
-        nlohmann::json payload;
-        payload.emplace("content", text);
-        if (tts) payload.emplace("tts", tts);
-        if (nonce) payload.emplace("nonce", *nonce);
+    nlohmann::json RestClient::sendTextMessage(uint64_t channelId, const std::string& text, bool tts) {
+        if (text.size() > 2000) throw InvalidParameter("text", "text out of range (should be 0-2000).");
 
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/messages",
-                               payload);
+                {
+                  { "contents", text },
+                  { "tts",      tts  }
+                });
+    }
+
+    nlohmann::json RestClient::sendFile(uint64_t channelId, const File& file) {
+        return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/messages",
+                               {}, {}, { file.toMultipartEntity() });
     }
 
     nlohmann::json RestClient::editMessage(uint64_t channelId, uint64_t messageId, const std::string& text) {
