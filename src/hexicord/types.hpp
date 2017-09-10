@@ -80,11 +80,11 @@ namespace Hexicord {
         inline operator uint64_t() const { return value; }
     };
 
-    void to_json(nlohmann::json& json, const Snowflake& snowflake) {
+    inline void to_json(nlohmann::json& json, const Snowflake& snowflake) {
         json = uint64_t(snowflake);
     }
 
-    void from_json(const nlohmann::json& json, Snowflake& snowflake) {
+    inline void from_json(const nlohmann::json& json, Snowflake& snowflake) {
         snowflake.value = json.get<uint64_t>();
     }
 } // namespace Hexicord
