@@ -29,7 +29,6 @@ Hexicord
 * CMake 3.0+
 * GCC 4.8.1+ or Clang 3.3+ or other C++11 compatible compiler
 * boost.asio 1.56+
-* boost.date_time
 * OpenSSL 1.0.1+
 * boost.beast (submodule or system)
 * _(Optional)_ Doxygen, if you also want to build documentation

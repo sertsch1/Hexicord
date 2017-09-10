@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 #include <boost/asio/io_service.hpp>
-#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <hexicord/json.hpp>
 #include <hexicord/event_dispatcher.hpp>
 #include <hexicord/internal/wss.hpp>
@@ -234,7 +234,7 @@ private:
         bool heartbeat = true; 
         unsigned heartbeatIntervalMs;
         unsigned unansweredHeartbeats = 0;
-        boost::asio::deadline_timer heartbeatTimer;
+        boost::asio::steady_timer heartbeatTimer;
 
         // Send heartbeat, if we don't have answer for two heartbeats - reconnect and return.
         void sendHeartbeat();

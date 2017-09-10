@@ -20,6 +20,8 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <hexicord/gateway_client.hpp>
+
+#include <chrono>
 #include <hexicord/config.hpp>
 #include <hexicord/internal/utils.hpp>
 
@@ -353,7 +355,7 @@ void GatewayClient::sendMessage(GatewayClient::OpCode opCode, const nlohmann::js
 
 void GatewayClient::asyncHeartbeat() {
     heartbeatTimer.cancel();
-    heartbeatTimer.expires_from_now(boost::posix_time::milliseconds(heartbeatIntervalMs));
+    heartbeatTimer.expires_from_now(std::chrono::milliseconds(heartbeatIntervalMs));
     heartbeatTimer.async_wait([this](const boost::system::error_code& ec){
         if (ec == boost::asio::error::operation_aborted) return;
         if (!heartbeat) return;
