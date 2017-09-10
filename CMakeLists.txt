@@ -192,6 +192,18 @@ configure_file(${HEXICORD_SOURCE_DIR}/src/hexicord/config.hpp.in
                ${HEXICORD_BINARY_DIR}/hexicord/config.hpp @ONLY)
 
 #------------------------------------------------------------------------------
+# Optional dependencies
+
+find_package(ZLIB)
+
+if (ZLIB_FOUND)
+    if(HEXICORD_ZLIB)
+        set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} ${ZLIB_LIBRARIES})
+        include_directories(${ZLIB_INCLUDE_DIRS})
+    endif()
+endif()
+
+#------------------------------------------------------------------------------
 # Library
 
 option(HEXICORD_STATIC "Build static library." ON )
