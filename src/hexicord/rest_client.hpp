@@ -29,6 +29,7 @@
 #include <hexicord/json.hpp>
 #include <hexicord/internal/rest.hpp>
 #include <hexicord/config.hpp>
+#include <hexicord/types.hpp>
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
     #include <hexicord/ratelimit_lock.hpp>
 #endif
@@ -40,32 +41,6 @@
  */
 
 namespace Hexicord {
-    /**
-     * Struct for (filename, bytes) pair.
-     */
-    struct File {
-        /**
-         * Read file specified by `path` to \ref bytes.
-         * Last component of path used as filename.
-         */
-        File(const std::string& path);
-        /**
-         * Read stream until EOF to \ref bytes.
-         */
-        File(const std::string& filename, std::istream&& stream);
-        /**
-         * Use passed vector as file contents.
-         */
-        File(const std::string& filename, const std::vector<uint8_t>& bytes);
-
-        /**
-         * Convert File object to multipart entity.
-         */
-        REST::MultipartEntity toMultipartEntity() const;
-
-        const std::string filename;
-        const std::vector<uint8_t> bytes;
-    };
 
     class RestClient {
     public:
@@ -160,7 +135,7 @@ namespace Hexicord {
          * \throws RESTError on API error (invalid channel).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        nlohmann::json getChannel(uint64_t channelId);
+        nlohmann::json getChannel(Snowflake channelId);
 
         /**
          * Update a channels settings.
@@ -184,7 +159,7 @@ namespace Hexicord {
          *
          * \returns Guild channel object.
          */
-        nlohmann::json modifyChannel(uint64_t channelId,
+        nlohmann::json modifyChannel(Snowflake channelId,
                                      boost::optional<std::string> name = boost::none,
                                      boost::optional<int> position = boost::none,
                                      boost::optional<std::string> topic = boost::none,
@@ -202,18 +177,18 @@ namespace Hexicord {
          *
          * \returns Channel object.
          */
-        nlohmann::json deleteChannel(uint64_t channelId);
+        nlohmann::json deleteChannel(Snowflake channelId);
 
         /**
-         * \fn getMessages(uint64_t,After,unsigned)
-         * \fn getMessages(uint64_t,Before,unsigned)
-         * \fn getMessages(uint64_t,Around,unsigned)
+         * \fn getMessages(Snowflake,After,unsigned)
+         * \fn getMessages(Snowflake,Before,unsigned)
+         * \fn getMessages(Snowflake,Around,unsigned)
          *
          * Get messages after/before/around specified id. 
          * By default returns up to 50 messages. Around overload requires
          * limit to be 2 at least.
          *
-         * \ref getMessages(uint64_t, uint64_t) overload is same as \ref getMessage.
+         * \ref getMessages(Snowflake, Snowflake) overload is same as \ref getMessage.
          *
          * Throws RESTError on API error and boost::system::system_error on connection
          * problem.
@@ -228,9 +203,9 @@ namespace Hexicord {
          * Tag types for \ref getMessages.
          */
 
-        struct After { uint64_t id; };
-        struct Before { uint64_t id; };
-        struct Around { uint64_t id; };
+        struct After { Snowflake id; };
+        struct Before { Snowflake id; };
+        struct Around { Snowflake id; };
 
         /**
          * Get messages after specified id. 
@@ -238,7 +213,7 @@ namespace Hexicord {
          * Limit can't be larger than 100, default is 50.
          * Throws RESTError on API error and boost::system::system_error on connection problem.
          */
-        nlohmann::json getMessages(uint64_t channelId, After afterId, unsigned limit = 50);
+        nlohmann::json getMessages(Snowflake channelId, After afterId, unsigned limit = 50);
 
         /**
          * Get messages before specified id. 
@@ -246,7 +221,7 @@ namespace Hexicord {
          * Limit can't be larger than 100, default is 50.
          * Throws RESTError on API error and boost::system::system_error on connection problem.
          */
-        nlohmann::json getMessages(uint64_t channelId, Before beforeId, unsigned limit = 50);
+        nlohmann::json getMessages(Snowflake channelId, Before beforeId, unsigned limit = 50);
 
         /**
          * Get messages around specified id. 
@@ -254,10 +229,10 @@ namespace Hexicord {
          * Limit can't be larger than 100 or smaller than 2, default is 50.
          * Throws RESTError on API error and boost::system::system_error on connection problem.
          */
-        nlohmann::json getMessages(uint64_t channelId, Around aroundId, unsigned limit = 50);
+        nlohmann::json getMessages(Snowflake channelId, Around aroundId, unsigned limit = 50);
 
         /// Same as \ref getMessage.
-        nlohmann::json getMessages(uint64_t channelId, uint64_t messageId);
+        nlohmann::json getMessages(Snowflake channelId, Snowflake messageId);
 
         /**
          * Get single message.
@@ -265,7 +240,7 @@ namespace Hexicord {
          * Throws RESTError on API error and boost::system::system_error on connection
          * problem.
          */
-        nlohmann::json getMessage(uint64_t channelId, uint64_t messageId);
+        nlohmann::json getMessage(Snowflake channelId, Snowflake messageId);
 
         /// \defgroup REST_pins Pinned messages operations
         /// Methods related to pinned messages.
@@ -278,7 +253,7 @@ namespace Hexicord {
          * Throws RESTError if ID is invalid and boost::system::system_error
          * if client can't connect to REST API server.
          */
-        nlohmann::json getPinnedMessages(uint64_t channelId);
+        nlohmann::json getPinnedMessages(Snowflake channelId);
 
         /**
          * Pin message messageId in channel channelId.
@@ -289,7 +264,7 @@ namespace Hexicord {
          * permission. Also can throw boost::system::system_error if client can't
          * connect to REST API server.
          */
-        void pinMessage(uint64_t channelId, uint64_t messageId);
+        void pinMessage(Snowflake channelId, Snowflake messageId);
 
         /**
          * Unpin message messageId in channel channelId.
@@ -300,7 +275,7 @@ namespace Hexicord {
          * permission. Also can throw boost::system::system_error if client can't
          * connect to REST API server.
          */
-        void unpinMessage(uint64_t channelId, uint64_t messageId);
+        void unpinMessage(Snowflake channelId, Snowflake messageId);
 
         /// @} REST_pins
         
@@ -317,7 +292,7 @@ namespace Hexicord {
          * permission. Also can throw boost::system::system_error if client can't
          * connect to REST API server.
          */
-        void editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+        void editChannelRolePermissions(Snowflake channelId, Snowflake roleId,
                                         Permissions allow, Permissions deny);
 
         /**
@@ -333,7 +308,7 @@ namespace Hexicord {
          * permission. Also can throw boost::system::system_error if client can't
          * connect to REST API server.
          */
-        void editChannelUserPermissions(uint64_t channelId, uint64_t userId,
+        void editChannelUserPermissions(Snowflake channelId, Snowflake userId,
                                         Permissions allow, Permissions deny);
 
         /**
@@ -346,7 +321,7 @@ namespace Hexicord {
          * permission. Also can throw boost::system::system_error if client can't
          * connect to REST API server.
          */
-        void deleteChannelPermissions(uint64_t channelId, uint64_t overrideId);
+        void deleteChannelPermissions(Snowflake channelId, Snowflake overrideId);
 
         /**
          * Remove (kick) member from group DM.
@@ -355,7 +330,7 @@ namespace Hexicord {
          * boost::system::system_error if client can't connect
          * to REST API server.
          */
-        void kickFromGroupDm(uint64_t groupDmId, uint64_t userId);
+        void kickFromGroupDm(Snowflake groupDmId, Snowflake userId);
 
         /**
          * Add member to group DM.
@@ -368,10 +343,10 @@ namespace Hexicord {
          * boost::system::system_error if client can't connect
          * to REST API server.
          */
-        void addToGroupDm(uint64_t groupDmId, uint64_t userId,
+        void addToGroupDm(Snowflake groupDmId, Snowflake userId,
                           const std::string& accessToken, const std::string& nick);
 
-        void triggerTypingIndicator(uint64_t channelId);
+        void triggerTypingIndicator(Snowflake channelId);
 
         /// @} Channel methods
         
@@ -400,7 +375,7 @@ namespace Hexicord {
          *
          * \sa \ref sendFile \ref sendRichMessage
          */
-        nlohmann::json sendTextMessage(uint64_t channelId, const std::string& text, bool tts = false);
+        nlohmann::json sendTextMessage(Snowflake channelId, const std::string& text, bool tts = false);
 
         /**
          * Send a message with a file to a text channel (or DM).
@@ -416,12 +391,12 @@ namespace Hexicord {
          *
          * \sa \ref sendTextMessage \ref sendRichMessage
          */
-        nlohmann::json sendFile(uint64_t channelId, const File& file);
+        nlohmann::json sendFile(Snowflake channelId, const File& file);
 
         /**
          * Same as \ref sendFile.
          */
-        inline nlohmann::json sendImage(uint64_t channelId, const File& image) {
+        inline nlohmann::json sendImage(Snowflake channelId, const File& image) {
             return sendFile(channelId, image);
         }
 
@@ -437,7 +412,7 @@ namespace Hexicord {
          *
          * \returns Message object.
          */
-        nlohmann::json editMessage(uint64_t channelId, uint64_t messageId, const std::string& text);
+        nlohmann::json editMessage(Snowflake channelId, Snowflake messageId, const std::string& text);
 
         /**
          * Delete a message. If operating on a guild channel and trying to
@@ -449,7 +424,7 @@ namespace Hexicord {
          * \throws RESTError on API error (missing permission, invalid ID).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        void deleteMessage(uint64_t channelId, uint64_t messageId);
+        void deleteMessage(Snowflake channelId, Snowflake messageId);
 
         /**
          * Delete multiple messages in a single request. This endpoint can 
@@ -464,7 +439,7 @@ namespace Hexicord {
          * \throws RESTError on API error (missing permission, invalid ID, older than 2 weeks).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        void deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds);
+        void deleteMessages(Snowflake channelId, const std::vector<Snowflake>& messageIds);
 
         /// \defgroup REST_reactions Reactions
         /// Methods related to message reactions.
@@ -484,7 +459,7 @@ namespace Hexicord {
          *
          * \sa \ref removeReaction \ref getReactions
          */
-        void addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId);
+        void addReaction(Snowflake channelId, Snowflake messageId, Snowflake emojiId);
 
         /**
          * Remove reaction from message.
@@ -500,7 +475,7 @@ namespace Hexicord {
          *
          * \sa \ref addReaction \ref getReactions
          */
-        void removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId = 0);
+        void removeReaction(Snowflake channelId, Snowflake messageId, Snowflake emojiId, Snowflake userId = 0);
 
         /**
          * Get a list of users that reacted with this emoji.
@@ -512,7 +487,7 @@ namespace Hexicord {
          *
          * \sa \ref addReaction \ref removeReaction
          */
-        nlohmann::json getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId);
+        nlohmann::json getReactions(Snowflake channelId, Snowflake messageId, Snowflake emojiId);
 
         /**
          * Remove all reactions from message. Requires MANAGE_MESSAGES
@@ -523,7 +498,7 @@ namespace Hexicord {
          * boost::system::system_error if client fails to connect 
          * to REST API server.
          */
-        void resetReactions(uint64_t channelId, uint64_t messageId);
+        void resetReactions(Snowflake channelId, Snowflake messageId);
 
         /// @} REST_reactions
 
@@ -555,7 +530,7 @@ namespace Hexicord {
          * \throws RESTError on API error (???).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        nlohmann::json getUser(uint64_t id);
+        nlohmann::json getUser(Snowflake id);
 
         /**
          * Change username.
@@ -649,7 +624,7 @@ namespace Hexicord {
          * \throws RESTError on API error (missing permissions, invalid ID).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        nlohmann::json getUserGuilds(unsigned short limit = 100, uint64_t startId = 0, bool before = false);
+        nlohmann::json getUserGuilds(unsigned short limit = 100, Snowflake startId = 0, bool before = false);
 
         /**
          * Leave a guild.
@@ -659,7 +634,7 @@ namespace Hexicord {
          * \throws RESTError on API error (missing permissions, invalid ID).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        void leaveGuild(uint64_t guildId);
+        void leaveGuild(Snowflake guildId);
 
         /**
          * Returns a list of DM channel objects.
@@ -677,7 +652,7 @@ namespace Hexicord {
          *
          * \returns Created DM channel object.
          */
-        nlohmann::json createDm(uint64_t recipientId);
+        nlohmann::json createDm(Snowflake recipientId);
 
         /**
          * Create a new group DM channel with multiple users. Returns 
@@ -693,8 +668,8 @@ namespace Hexicord {
          * \throws RESTError on API error (missing permissions, invalid ID).
          * \throws boost::system::system_error on connection problem (rare).
          */
-        nlohmann::json createGroupDm(const std::vector<uint64_t>& accessTokens,
-                                     const std::unordered_map<uint64_t, std::string>& nicks);
+        nlohmann::json createGroupDm(const std::vector<Snowflake>& accessTokens,
+                                     const std::unordered_map<Snowflake, std::string>& nicks);
 
         /**
          * Returns a list of connection objects.
@@ -760,7 +735,7 @@ namespace Hexicord {
          * boost::system::system_error if client fails to connect 
          * to REST API server.
          */
-        nlohmann::json getChannelInvites(uint64_t channelId);
+        nlohmann::json getChannelInvites(Snowflake channelId);
 
         /**
          * Create new invite for a channel.
@@ -785,7 +760,7 @@ namespace Hexicord {
          * In addition this method throws boost::system::system_error if REST API
          * server is not reachable.
          */
-        nlohmann::json createInvite(uint64_t channelId, unsigned maxAgeSecs = 86400,
+        nlohmann::json createInvite(Snowflake channelId, unsigned maxAgeSecs = 86400,
                                     unsigned maxUses = 0,
                                     bool temporaryMembership = false,
                                     bool unique = false);
@@ -815,6 +790,8 @@ private:
 #ifdef HEXICORD_RATELIMIT_PREDICTION 
         void updateRatelimitsIfPresent(const std::string& endpoint, const REST::HeadersMap& headers);
 #endif 
+
+        static inline REST::MultipartEntity fileToMultipartEntity(const File& file);
 
         std::unique_ptr<REST::HTTPSConnection> restConnection;
         boost::asio::io_service& ioService; // non-owning reference to I/O service.

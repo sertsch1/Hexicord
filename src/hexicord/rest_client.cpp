@@ -35,36 +35,7 @@
     #define DEBUG_MSG(msg)
 #endif
 
-#if _WIN32
-    #define PATH_DELIMITER '\\'
-#elif !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-    #define PATH_DELIMITER '/'
-#endif
-
 namespace Hexicord {
-    File::File(const std::string& path) 
-        : filename(Utils::split(path, PATH_DELIMITER).back())
-        , bytes(std::istreambuf_iterator<char>(std::ifstream(path).rdbuf()),
-                std::istreambuf_iterator<char>()) {}
-
-    File::File(const std::string& filename, std::istream&& stream)
-        : filename(filename)
-        , bytes(std::istreambuf_iterator<char>(stream.rdbuf()),
-                std::istreambuf_iterator<char>()) {}
-
-    File::File(const std::string& filename, const std::vector<uint8_t>& bytes)
-        : filename(filename)
-        , bytes(bytes) {}
-
-    REST::MultipartEntity File::toMultipartEntity() const {
-        return {
-                /* name:              */ filename,
-                /* filename:          */ filename,
-                /* additionalHeaders: */ {},
-                /* body:              */ bytes
-               };
-    }
-
     RestClient::RestClient(boost::asio::io_service& ioService, const std::string& token) 
         : restConnection(new REST::HTTPSConnection(ioService, "discordapp.com"))
         , token(token)
@@ -159,11 +130,11 @@ namespace Hexicord {
         return jsonResp;
     }
 
-    nlohmann::json RestClient::getChannel(uint64_t channelId) {
+    nlohmann::json RestClient::getChannel(Snowflake channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId));
     }
 
-    nlohmann::json RestClient::modifyChannel(uint64_t channelId,
+    nlohmann::json RestClient::modifyChannel(Snowflake channelId,
                                          boost::optional<std::string> name,
                                          boost::optional<int> position,
                                          boost::optional<std::string> topic,
@@ -207,11 +178,11 @@ namespace Hexicord {
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId), payload);
     }
 
-    nlohmann::json RestClient::deleteChannel(uint64_t channelId) {
+    nlohmann::json RestClient::deleteChannel(Snowflake channelId) {
         return sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId));
     }
 
-    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::After afterId, unsigned limit) {
+    nlohmann::json RestClient::getMessages(Snowflake channelId, RestClient::After afterId, unsigned limit) {
         if (limit > 100 || limit == 0) {
             throw InvalidParameter("limit", "limit out of range (should be 1-100).");
         }
@@ -221,7 +192,7 @@ namespace Hexicord {
                                     { "limit", std::to_string(limit) }});
     }
 
-    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::Before afterId, unsigned limit) {
+    nlohmann::json RestClient::getMessages(Snowflake channelId, RestClient::Before afterId, unsigned limit) {
         if (limit > 100 || limit == 0) {
             throw InvalidParameter("limit", "limit out of range (should be 1-100).");
         }
@@ -231,7 +202,7 @@ namespace Hexicord {
                                     { "limit", std::to_string(limit) }});
     }
 
-    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::Around afterId, unsigned limit) {
+    nlohmann::json RestClient::getMessages(Snowflake channelId, RestClient::Around afterId, unsigned limit) {
         if (limit > 100 || limit == 1) {
             throw InvalidParameter("limit", "limit out of range (should be 2-100).");
         }
@@ -241,32 +212,32 @@ namespace Hexicord {
                                     { "limit", std::to_string(limit) }});
     }
 
-    nlohmann::json RestClient::getMessages(uint64_t channelId, uint64_t messageId) {
+    nlohmann::json RestClient::getMessages(Snowflake channelId, Snowflake messageId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
                                "/messsages/" + std::to_string(messageId));
     }
 
-    nlohmann::json RestClient::getMessage(uint64_t channelId, uint64_t messageId) {
+    nlohmann::json RestClient::getMessage(Snowflake channelId, Snowflake messageId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
                                "/messsages/" + std::to_string(messageId));
     }
 
-    nlohmann::json RestClient::getPinnedMessages(uint64_t channelId) {
+    nlohmann::json RestClient::getPinnedMessages(Snowflake channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/pins");
     }
 
-    void RestClient::pinMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::pinMessage(Snowflake channelId, Snowflake messageId) {
         sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
                                            "/pins/"      + std::to_string(messageId));
     }
 
-    void RestClient::unpinMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::unpinMessage(Snowflake channelId, Snowflake messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/pins/"      + std::to_string(messageId));
     }
 
-    void RestClient::editChannelRolePermissions(uint64_t channelId, uint64_t roleId,
+    void RestClient::editChannelRolePermissions(Snowflake channelId, Snowflake roleId,
                                     Permissions allow, Permissions deny) {
 
         sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
@@ -278,7 +249,7 @@ namespace Hexicord {
             });
     }
 
-    void RestClient::editChannelUserPermissions(uint64_t channelId, uint64_t userId,
+    void RestClient::editChannelUserPermissions(Snowflake channelId, Snowflake userId,
                                     Permissions allow, Permissions deny) {
 
         sendRestRequest("PUT", std::string("/channels/")   + std::to_string(channelId) +
@@ -290,17 +261,17 @@ namespace Hexicord {
             });
     }
 
-    void RestClient::deleteChannelPermissions(uint64_t channelId, uint64_t overrideId) {
+    void RestClient::deleteChannelPermissions(Snowflake channelId, Snowflake overrideId) {
         sendRestRequest("DELETE", std::string("/channels/")   + std::to_string(channelId) +
                                               "/permissions/" + std::to_string(overrideId));
     }
 
-    void RestClient::kickFromGroupDm(uint64_t groupDmId, uint64_t userId) {
+    void RestClient::kickFromGroupDm(Snowflake groupDmId, Snowflake userId) {
         sendRestRequest("DELETE", std::string("/channels/")  + std::to_string(groupDmId) +
                                               "/recipients/" + std::to_string(userId));
     }
 
-    void RestClient::addToGroupDm(uint64_t groupDmId, uint64_t userId,
+    void RestClient::addToGroupDm(Snowflake groupDmId, Snowflake userId,
                               const std::string& accessToken, const std::string& nick) {
 
         sendRestRequest("PUT", std::string("/channels/")  + std::to_string(groupDmId) +
@@ -311,11 +282,11 @@ namespace Hexicord {
                         });
     }
 
-    void RestClient::triggerTypingIndicator(uint64_t channelId) {
+    void RestClient::triggerTypingIndicator(Snowflake channelId) {
         sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/typing");
     }
 
-    nlohmann::json RestClient::sendTextMessage(uint64_t channelId, const std::string& text, bool tts) {
+    nlohmann::json RestClient::sendTextMessage(Snowflake channelId, const std::string& text, bool tts) {
         if (text.size() > 2000) throw InvalidParameter("text", "text out of range (should be 0-2000).");
 
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/messages",
@@ -325,12 +296,12 @@ namespace Hexicord {
                 });
     }
 
-    nlohmann::json RestClient::sendFile(uint64_t channelId, const File& file) {
+    nlohmann::json RestClient::sendFile(Snowflake channelId, const File& file) {
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/messages",
-                               {}, {}, { file.toMultipartEntity() });
+                               {}, {}, { fileToMultipartEntity(file) });
     }
 
-    nlohmann::json RestClient::editMessage(uint64_t channelId, uint64_t messageId, const std::string& text) {
+    nlohmann::json RestClient::editMessage(Snowflake channelId, Snowflake messageId, const std::string& text) {
         if (text.size() > 2000) {
             throw InvalidParameter("text", "text size out of range (should be 0-1024)");
         }
@@ -339,37 +310,37 @@ namespace Hexicord {
                                {{ "content", text }});
     }
 
-    void RestClient::deleteMessage(uint64_t channelId, uint64_t messageId) {
+    void RestClient::deleteMessage(Snowflake channelId, Snowflake messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/" +
                         std::to_string(messageId));
     }
 
-    void RestClient::deleteMessages(uint64_t channelId, const std::vector<uint64_t>& messageIds) {
+    void RestClient::deleteMessages(Snowflake channelId, const std::vector<Snowflake>& messageIds) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) + "/messages/bulk-delete",
                         {{ "messages", messageIds }});
     }
 
-    void RestClient::addReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+    void RestClient::addReaction(Snowflake channelId, Snowflake messageId, Snowflake emojiId) {
         sendRestRequest("PUT", std::string("/channels/") + std::to_string(channelId) +
                                            "/messages/"  + std::to_string(messageId) +
                                            "/reactions/" + std::to_string(emojiId)   +
                                            "/@me");
     }
 
-    void RestClient::removeReaction(uint64_t channelId, uint64_t messageId, uint64_t emojiId, uint64_t userId) {
+    void RestClient::removeReaction(Snowflake channelId, Snowflake messageId, Snowflake emojiId, Snowflake userId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/messages/"  + std::to_string(messageId) +
                                               "/reactions/" + std::to_string(emojiId)   +
                                              (userId ? std::to_string(userId) : std::string("/@me")));
     }
 
-    nlohmann::json RestClient::getReactions(uint64_t channelId, uint64_t messageId, uint64_t emojiId) {
+    nlohmann::json RestClient::getReactions(Snowflake channelId, Snowflake messageId, Snowflake emojiId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/messages/"  + std::to_string(messageId) +
                                                   "/reactions/" + std::to_string(emojiId));
     }
 
-    void RestClient::resetReactions(uint64_t channelId, uint64_t messageId) {
+    void RestClient::resetReactions(Snowflake channelId, Snowflake messageId) {
         sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId) +
                                               "/messages/"  + std::to_string(messageId) +
                                               "/reactions");
@@ -379,7 +350,7 @@ namespace Hexicord {
         return sendRestRequest("GET", std::string("/users/@me"));
     }
 
-    nlohmann::json RestClient::getUser(uint64_t id) {
+    nlohmann::json RestClient::getUser(Snowflake id) {
         return sendRestRequest("GET", std::string("/users/") + std::to_string(id));
     }
 
@@ -429,7 +400,7 @@ namespace Hexicord {
         return setAvatar(avatarBytes, format);
     }
 
-    nlohmann::json RestClient::getUserGuilds(unsigned short limit, uint64_t startId, bool before) {
+    nlohmann::json RestClient::getUserGuilds(unsigned short limit, Snowflake startId, bool before) {
         std::unordered_map<std::string, std::string> query;
         if (limit != 100) {
             query.insert({ "limit", std::to_string(limit) });
@@ -440,7 +411,7 @@ namespace Hexicord {
         return sendRestRequest("GET", "/users/@me/guilds", {}, query);
     }
 
-    void RestClient::leaveGuild(uint64_t guildId) {
+    void RestClient::leaveGuild(Snowflake guildId) {
         sendRestRequest("DELETE", std::string("/users/@me/guilds/") + std::to_string(guildId));
     }
 
@@ -448,13 +419,13 @@ namespace Hexicord {
         return sendRestRequest("GET", "/users/@me/channels");
     }
 
-    nlohmann::json RestClient::createDm(uint64_t recipientId) {
+    nlohmann::json RestClient::createDm(Snowflake recipientId) {
         return sendRestRequest("POST", "/users/@me/channels", {{ "recipient_id", recipientId }});
     }
 
 
-    nlohmann::json RestClient::createGroupDm(const std::vector<uint64_t>& accessTokens,
-                                         const std::unordered_map<uint64_t, std::string>& nicks) {
+    nlohmann::json RestClient::createGroupDm(const std::vector<Snowflake>& accessTokens,
+                                         const std::unordered_map<Snowflake, std::string>& nicks) {
 
         return sendRestRequest("POST", "/users/@me/channels", {{ "access_tokens", accessTokens },
                                                                { "nicks",         nicks        }});
@@ -476,12 +447,12 @@ namespace Hexicord {
         return sendRestRequest("POST", std::string("/invites/") + inviteCode);
     }
 
-    nlohmann::json RestClient::getChannelInvites(uint64_t channelId) {
+    nlohmann::json RestClient::getChannelInvites(Snowflake channelId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
                                                   "/invites");
     }
 
-    nlohmann::json RestClient::createInvite(uint64_t channelId, unsigned maxAgeSecs,
+    nlohmann::json RestClient::createInvite(Snowflake channelId, unsigned maxAgeSecs,
                                         unsigned maxUses,
                                         bool temporaryMembership,
                                         bool unique) {
@@ -587,4 +558,13 @@ namespace Hexicord {
         }
     }
 #endif // HEXICORD_RATELIMIT_PREDICTION
+
+    REST::MultipartEntity RestClient::fileToMultipartEntity(const File& file) {
+        return {
+                /* name:              */ file.filename,
+                /* filename:          */ file.filename,
+                /* additionalHeaders: */ {},
+                /* body:              */ file.bytes
+               };
+    }
 } // namespace Hexicord
