@@ -211,38 +211,42 @@ namespace Hexicord {
         return sendRestRequest("DELETE", std::string("/channels/") + std::to_string(channelId));
     }
 
-    nlohmann::json RestClient::getChannelMessages(uint64_t channelId, uint64_t startMessageId,
-                                              GetMsgMode mode, unsigned short limit) {
-        
-        std::unordered_map<std::string, std::string> query;
-
-        switch (mode) {
-        case Around:
-            query.insert({ "around", std::to_string(startMessageId) });
-            break;
-        case Before:
-            query.insert({ "before", std::to_string(startMessageId) });
-            break;
-        case After:
-            query.insert({ "after",  std::to_string(startMessageId) }); 
-            break;
-        }
-
-        if (limit != 50) { // 50 is default value in v6, no need to pass it explicitly.
-            if (limit > 100 || limit == 0) {
-                throw InvalidParameter("limit", "limit out of range (should be 1-100).");
-            }
-            if (mode == After && limit == 1) {
-                throw InvalidParameter("limit", "limit out of range (should be 2-100 for After mode).");
-            }
-            query.insert({ "limit", std::to_string(limit) });
+    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::After afterId, unsigned limit) {
+        if (limit > 100 || limit == 0) {
+            throw InvalidParameter("limit", "limit out of range (should be 1-100).");
         }
 
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + "/messages",
-                               query);
+                               {}, {{ "after", std::to_string(afterId.id) },
+                                    { "limit", std::to_string(limit) }});
     }
 
-    nlohmann::json RestClient::getChannelMessage(uint64_t channelId, uint64_t messageId) {
+    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::Before afterId, unsigned limit) {
+        if (limit > 100 || limit == 0) {
+            throw InvalidParameter("limit", "limit out of range (should be 1-100).");
+        }
+
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + "/messages",
+                               {}, {{ "before", std::to_string(afterId.id) },
+                                    { "limit", std::to_string(limit) }});
+    }
+
+    nlohmann::json RestClient::getMessages(uint64_t channelId, RestClient::Around afterId, unsigned limit) {
+        if (limit > 100 || limit == 1) {
+            throw InvalidParameter("limit", "limit out of range (should be 2-100).");
+        }
+
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + "/messages",
+                               {}, {{ "around", std::to_string(afterId.id) },
+                                    { "limit", std::to_string(limit) }});
+    }
+
+    nlohmann::json RestClient::getMessages(uint64_t channelId, uint64_t messageId) {
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
+                               "/messsages/" + std::to_string(messageId));
+    }
+
+    nlohmann::json RestClient::getMessage(uint64_t channelId, uint64_t messageId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
                                "/messsages/" + std::to_string(messageId));
     }

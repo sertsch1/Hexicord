@@ -204,48 +204,68 @@ namespace Hexicord {
          */
         nlohmann::json deleteChannel(uint64_t channelId);
 
-        enum GetMsgMode {
-            /// Get messages **around** start ID.
-            Around,
-            /// Get messages **before** start ID.
-            Before,
-            /// Get messages **after** start ID.
-            After
-        };
+        /**
+         * \fn getMessages(uint64_t,After,unsigned)
+         * \fn getMessages(uint64_t,Before,unsigned)
+         * \fn getMessages(uint64_t,Around,unsigned)
+         *
+         * Get messages after/before/around specified id. 
+         * By default returns up to 50 messages. Around overload requires
+         * limit to be 2 at least.
+         *
+         * \ref getMessages(uint64_t, uint64_t) overload is same as \ref getMessage.
+         *
+         * Throws RESTError on API error and boost::system::system_error on connection
+         * problem.
+         *
+         * \class After
+         * Tag types for \ref getMessages.
+         *
+         * \class Before
+         * Tag types for \ref getMessages.
+         *
+         * \class Around
+         * Tag types for \ref getMessages.
+         */
+
+        struct After { uint64_t id; };
+        struct Before { uint64_t id; };
+        struct Around { uint64_t id; };
 
         /**
-         * Get messages from channel.
-         *
-         * Requires READ_MESSAGES permission if operating on guild channel.
-         *
-         * \param channelId        Snowflake ID of target channel.
-         * \param startMessageId   Return messages around/before/after (depending on mode) this ID
-         * \param mode             See \ref GetMsgMode. Default is After.
-         * \param limit            Max number of messages to return (1-100). Default is 50.
-         *
-         * \throws RESTError on API error (invalid ID, missing permissions).
-         * \throws InvalidParameter if limit is bigger than 100 or equals to 0.
-         * \throws boost::system::system_error on connection problem (rare).
-         *
-         * \returns Array of message objects.
+         * Get messages after specified id. 
+         * 
+         * Limit can't be larger than 100, default is 50.
+         * Throws RESTError on API error and boost::system::system_error on connection problem.
          */
-        nlohmann::json getChannelMessages(uint64_t channelId, uint64_t startMessageId,
-                                          GetMsgMode mode = After, unsigned short limit = 50);
+        nlohmann::json getMessages(uint64_t channelId, After afterId, unsigned limit = 50);
 
         /**
-         * Returns a specific message in the channel.
-         *
-         * Requires READ_MESSAGES_HISTORY permission if operating on guild channel.
-         *
-         * \param channelId    Snowflake ID of target channel.
-         * \param messageId    Snowflake ID of target message.
-         *
-         * \throws RESTError on API error (invalid ID, missing permission).
-         * \throws boost::system::system_error on connection problem (rare).
-         *
-         * \returns Message object.
+         * Get messages before specified id. 
+         * 
+         * Limit can't be larger than 100, default is 50.
+         * Throws RESTError on API error and boost::system::system_error on connection problem.
          */
-        nlohmann::json getChannelMessage(uint64_t channelId, uint64_t messageId);
+        nlohmann::json getMessages(uint64_t channelId, Before beforeId, unsigned limit = 50);
+
+        /**
+         * Get messages around specified id. 
+         * 
+         * Limit can't be larger than 100 or smaller than 2, default is 50.
+         * Throws RESTError on API error and boost::system::system_error on connection problem.
+         */
+        nlohmann::json getMessages(uint64_t channelId, Around aroundId, unsigned limit = 50);
+
+        /// Same as \ref getMessage.
+        nlohmann::json getMessages(uint64_t channelId, uint64_t messageId);
+
+        /**
+         * Get single message.
+         *
+         * Throws RESTError on API error and boost::system::system_error on connection
+         * problem.
+         */
+        nlohmann::json getMessage(uint64_t channelId, uint64_t messageId);
 
         /// \defgroup REST_pins Pinned messages operations
         /// Methods related to pinned messages.
