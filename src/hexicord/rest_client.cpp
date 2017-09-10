@@ -212,11 +212,6 @@ namespace Hexicord {
                                     { "limit", std::to_string(limit) }});
     }
 
-    nlohmann::json RestClient::getMessages(Snowflake channelId, Snowflake messageId) {
-        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
-                               "/messsages/" + std::to_string(messageId));
-    }
-
     nlohmann::json RestClient::getMessage(Snowflake channelId, Snowflake messageId) {
         return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) + 
                                "/messsages/" + std::to_string(messageId));

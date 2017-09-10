@@ -157,7 +157,7 @@ namespace Hexicord {
          * \throws InvalidParameter if arguments out of range.
          * \throws boost::system::system_error on connection problem (rare).
          *
-         * \returns Guild channel object.
+         * \returns Guild channel object after modification.
          */
         nlohmann::json modifyChannel(Snowflake channelId,
                                      boost::optional<std::string> name = boost::none,
@@ -165,6 +165,27 @@ namespace Hexicord {
                                      boost::optional<std::string> topic = boost::none,
                                      boost::optional<unsigned> bitrate = boost::none,
                                      boost::optional<unsigned short> usersLimit = boost::none);
+
+        /// Same as \def modifyChannel, but changes only name.
+        inline nlohmann::json setChannelName(Snowflake channelId, const std::string& newName) {
+            return modifyChannel(channelId, newName);
+        }
+        /// Same as \def modifyChannel, but changes only position.
+        inline nlohmann::json setChannelPosition(Snowflake channelId, int newPosition) {
+            return modifyChannel(channelId, boost::none, newPosition);
+        }
+        /// Same as \def modifyChannel, but changes only topic.
+        inline nlohmann::json setChannelTopic(Snowflake textChannelId, const std::string& newTopic) {
+            return modifyChannel(textChannelId, boost::none, boost::none, newTopic);
+        }
+        /// Same as \def modifyChannel, but changes only bitrate.
+        inline nlohmann::json setChannelBitrate(Snowflake voiceChannelId, unsigned newBitrate) {
+            return modifyChannel(voiceChannelId, boost::none, boost::none, boost::none, newBitrate);
+        }
+        /// Same as \def modifyChannel, but changes only users limit.
+        inline nlohmann::json setChannelUsersLimit(Snowflake voiceChannelId, unsigned short newLimit) {
+            return modifyChannel(voiceChannelId, boost::none, boost::none, boost::none, boost::none, newLimit);
+        }
 
         /**
          * Delete a guild channel or close DM.
@@ -219,7 +240,9 @@ namespace Hexicord {
         nlohmann::json getMessages(Snowflake channelId, Around aroundId, unsigned limit = 50);
 
         /// Same as \ref getMessage.
-        nlohmann::json getMessages(Snowflake channelId, Snowflake messageId);
+        inline nlohmann::json getMessages(Snowflake channelId, Snowflake messageId) {
+            return getMessage(channelId, messageId);
+        }
 
         /**
          * Get single message.
