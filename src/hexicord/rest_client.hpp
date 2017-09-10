@@ -180,19 +180,6 @@ namespace Hexicord {
         nlohmann::json deleteChannel(Snowflake channelId);
 
         /**
-         * \fn getMessages(Snowflake,After,unsigned)
-         * \fn getMessages(Snowflake,Before,unsigned)
-         * \fn getMessages(Snowflake,Around,unsigned)
-         *
-         * Get messages after/before/around specified id. 
-         * By default returns up to 50 messages. Around overload requires
-         * limit to be 2 at least.
-         *
-         * \ref getMessages(Snowflake, Snowflake) overload is same as \ref getMessage.
-         *
-         * Throws RESTError on API error and boost::system::system_error on connection
-         * problem.
-         *
          * \class After
          * Tag types for \ref getMessages.
          *
