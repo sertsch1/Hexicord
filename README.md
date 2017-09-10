@@ -38,7 +38,7 @@ specified range.
 
 Following command should be enough on debian-based distros:
 ```
-# apt-get install cmake gcc doxygen libboost-dev libboost-date-time-dev libboost-system-dev libssl-dev
+# apt-get install cmake gcc doxygen libboost-dev libboost-system-dev libssl-dev
 ```
 
 #### Installation
