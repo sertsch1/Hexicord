@@ -746,6 +746,16 @@ namespace Hexicord {
          */
 
         /**
+         * Get array of invite objects (with invite metadata) for a specified guild.
+         *
+         * Requires \ref Permission::ManageGuild permission.
+         *
+         * \throws RESTError on API error (missing permissions, invalid ID).
+         * \throws boost::system::system_error on connection problem (rare).
+         */
+        nlohmann::json getInvites(Snowflake guildId);
+
+        /**
          * Returns an invite object for the given code.
          *
          * \throws RESTError on API error (missing permissions, invalid ID).

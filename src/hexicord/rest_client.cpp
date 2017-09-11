@@ -446,6 +446,11 @@ namespace Hexicord {
         return sendRestRequest("GET", "/users/@me/connections");
     }
 
+    nlohmann::json RestClient::getInvites(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/invites");
+    }
+
     nlohmann::json RestClient::getInvite(const std::string& inviteCode) {
         return sendRestRequest("GET", std::string("/invites/") + inviteCode);
     }
