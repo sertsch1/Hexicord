@@ -517,6 +517,50 @@ namespace Hexicord {
         /// \defgroup REST_guilds Guild methods
         /// Methods related to guilds.
         /// @{
+        
+        /**
+         * Get guild object by id.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json getGuild(Snowflake id);
+
+        /**
+         * Create a new guild. Returns a guild object.
+         *
+         * See https://discordapp.com/developers/docs/resources/guild#create-guild-json-params
+         * for list of fields to pass.
+         *
+         * \warning By default this endpoint is limited to 10 active guilds.
+         * These limits are raised for whitelisted GameBridge applications.
+         *
+         * \note If roles are specified, the required id field within each
+         * role object is an integer placeholder, and will be replaced by
+         * the API upon consumption. Its purpose is to allow you to overwrite
+         * a role's permissions in a channel when also passing in channels
+         * with the channels array.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json createGuild(const nlohmann::json& newGuildObject);
+
+        /**
+         * Modify a guild's settings. Returns the updated guild object.
+         *
+         * Pass only changed settings, no need to pass everything.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json modifyGuild(Snowflake id, const nlohmann::json& changedFields);
 
         /**
          * Get guild bans. Returns array of ban objects.

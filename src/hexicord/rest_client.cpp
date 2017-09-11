@@ -341,6 +341,18 @@ namespace Hexicord {
                                               "/reactions");
     }
 
+    nlohmann::json RestClient::getGuild(Snowflake id) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(id));
+    }
+
+    nlohmann::json RestClient::createGuild(const nlohmann::json& newGuildObject) {
+        return sendRestRequest("POST", "/guilds", newGuildObject);
+    }
+
+    nlohmann::json Restclient::modifyGuild(Snowflake id, const nlohmann::json& changedFields) {
+        return sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(id), changedFields);
+    }
+
     nlohmann::json RestClient::getBans(Snowflake guildId) {
         return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
                                                   "/bans");
