@@ -341,6 +341,22 @@ namespace Hexicord {
                                               "/reactions");
     }
 
+    nlohmann::json RestClient::getBans(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/bans");
+    }
+
+    void RestClient::banMember(Snowflake guildId, Snowflake userId, unsigned deleteMessagesDays) {
+        sendRestRequest("PUT", std::string("/guilds/") + std::to_string(guildId) +
+                                           "/bans"     + std::to_string(userId),
+                        {}, {{ "delete-message-days", std::to_string(deleteMessagesDays) }});
+    }
+
+    void RestClient::unbanMember(Snowflake guildId, Snowflake userId) {
+        sendRestRequest("DELETE", std::string("/guilds/") + std::to_string(guildId) +
+                                              "/bans"     + std::to_string(userId));
+    }
+
     nlohmann::json RestClient::getMe() {
         return sendRestRequest("GET", std::string("/users/@me"));
     }

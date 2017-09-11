@@ -514,6 +514,50 @@ namespace Hexicord {
 
         /// @} REST_messages
         
+        /// \defgroup REST_guilds Guild methods
+        /// Methods related to guilds.
+        /// @{
+
+        /**
+         * Get guild bans. Returns array of ban objects.
+         *
+         * Requires \ref Permission::BanMembers permission.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json getBans(Snowflake guildId);
+
+        /**
+         * Ban member on guild. 
+         *
+         * Requires \ref Permission::BanMembers permissions.
+         * You can additionally specify deleteMessageDays to remove user
+         * messages for last (0-7) days.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void banMember(Snowflake guildId, Snowflake userId, unsigned deleteMessagesDays = 0);
+
+        /**
+         * Unban member on guild. 
+         *
+         * Requires \ref Permission::BanMembers permissions.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void unbanMember(Snowflake guildId, Snowflake userId);
+
+        /// @} REST_guilds
+        
         /**
          * \defgroup REST_users Users methods
          *
