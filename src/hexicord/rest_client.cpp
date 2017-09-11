@@ -349,7 +349,7 @@ namespace Hexicord {
         return sendRestRequest("POST", "/guilds", newGuildObject);
     }
 
-    nlohmann::json Restclient::modifyGuild(Snowflake id, const nlohmann::json& changedFields) {
+    nlohmann::json RestClient::modifyGuild(Snowflake id, const nlohmann::json& changedFields) {
         return sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(id), changedFields);
     }
 
