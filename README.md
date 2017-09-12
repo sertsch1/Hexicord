@@ -32,13 +32,14 @@ Hexicord
 * OpenSSL 1.0.1+
 * boost.beast (submodule or system)
 * _(Optional)_ Doxygen, if you also want to build documentation
+* _(Optional)_ Zlib, if you want to use gateway message compression
 
 **Note:** Versions is approximate and can be actually lower or higher, please report any problems with versions in 
 specified range.
 
-Following command should be enough on debian-based distros:
+Following command should be enough for everything on debian-based distros:
 ```
-# apt-get install cmake gcc doxygen libboost-dev libboost-system-dev libssl-dev
+# apt-get install cmake gcc doxygen libz-dev libboost-dev libboost-system-dev libssl-dev
 ```
 
 #### Installation

@@ -116,6 +116,8 @@ option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 find_package(Boost COMPONENTS system date_time)
 find_package(OpenSSL REQUIRED)
 
+set(HEXICORD_DEPENDENCIES Threads::Threads Boost::system OpenSSL::SSL OpenSSL::Crypto)
+
 #------------------------------------------------------------------------------
 # POSIX Threads
 
@@ -140,6 +142,7 @@ endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.1)
     define_threads_target()
+    define_zlib_target()
     include(cmake/cmake_cxx11_standard.cmake)
 endif()
 
@@ -164,6 +167,7 @@ elseif(CMAKE_VERSION VERSION_LESS 3.5)
     define_boost_target(beast)
 endif()
 
+set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} Boost::beast)
 
 #------------------------------------------------------------------------------
 # Library Configuration
@@ -183,13 +187,22 @@ hexicord_config(BOOL HEXICORD_RATELIMIT_HIT_AS_ERROR "Throw exception on ratelim
 
 hexicord_config(STRING HEXICORD_RATELIMIT_CACHE_SIZE   "Limit count of entries with information about ratelimits per route" "512")
 
+hexicord_config(BOOL HEXICORD_ZLIB "Use optional zlib compression" OFF)
+
 configure_file(${HEXICORD_SOURCE_DIR}/src/hexicord/config.hpp.in
                ${HEXICORD_BINARY_DIR}/hexicord/config.hpp @ONLY)
 
 #------------------------------------------------------------------------------
-# Library
+# Optional dependencies
 
-set(HEXICORD_DEPENDENCIES Threads::Threads Boost::beast Boost::system OpenSSL::SSL OpenSSL::Crypto)
+find_package(ZLIB)
+
+if (ZLIB_FOUND AND HEXICORD_ZLIB)
+    set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} ZLIB::ZLIB)
+endif()
+
+#------------------------------------------------------------------------------
+# Library
 
 option(HEXICORD_STATIC "Build static library." ON )
 option(HEXICORD_SHARED "Build shared library." OFF)
@@ -207,7 +220,9 @@ endif()
 
 target_link_libraries(hexicord PUBLIC ${HEXICORD_DEPENDENCIES})
 # to access config.hpp
-target_include_directories(hexicord PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_BINARY_DIR})
+target_include_directories(hexicord PUBLIC
+                           ${PROJECT_SOURCE_DIR}/src
+                           ${PROJECT_BINARY_DIR})
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
 # NOT SUPPORTED until we remove references to beast from headers.
