@@ -142,6 +142,7 @@ endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.1)
     define_threads_target()
+    define_zlib_target()
     include(cmake/cmake_cxx11_standard.cmake)
 endif()
 
@@ -196,11 +197,8 @@ configure_file(${HEXICORD_SOURCE_DIR}/src/hexicord/config.hpp.in
 
 find_package(ZLIB)
 
-if (ZLIB_FOUND)
-    if(HEXICORD_ZLIB)
-        set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} ${ZLIB_LIBRARIES})
-        include_directories(${ZLIB_INCLUDE_DIRS})
-    endif()
+if (ZLIB_FOUND AND HEXICORD_ZLIB)
+    set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} ZLIB::ZLIB)
 endif()
 
 #------------------------------------------------------------------------------
@@ -223,9 +221,8 @@ endif()
 target_link_libraries(hexicord PUBLIC ${HEXICORD_DEPENDENCIES})
 # to access config.hpp
 target_include_directories(hexicord PUBLIC
-                            ${PROJECT_SOURCE_DIR}/lib/zlibcomplete/lib
-                            ${PROJECT_SOURCE_DIR}/src
-                            ${PROJECT_BINARY_DIR})
+                           ${PROJECT_SOURCE_DIR}/src
+                           ${PROJECT_BINARY_DIR})
 target_compile_options(hexicord PRIVATE ${WARNING_FLAGS})
 
 # NOT SUPPORTED until we remove references to beast from headers.

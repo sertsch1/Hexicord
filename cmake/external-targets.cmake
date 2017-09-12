@@ -45,3 +45,10 @@ macro(define_threads_target)
     endif()
 endmacro()
 
+macro(define_zlib_target)
+    add_library(__Zlib INTERFACE)
+    target_include_directories(__Zlib SYSTEM INTERFACE ${ZLIB_INCLUDE_DIRS})
+    target_link_libraries(__Zlib INTERFACE ${ZLIB_LIBRARIES})
+
+    add_library(ZLIB::ZLIB ALIAS __Zlib)
+endmacro()
