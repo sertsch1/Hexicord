@@ -1,6 +1,6 @@
 macro(define_boost_target component_name)
     add_library(__Boost_${component_name} INTERFACE)
-    target_include_directories(__Boost_${component_name} INTERFACE ${Boost_INCLUDE_DIRS})
+    target_include_directories(__Boost_${component_name} SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
     target_link_libraries(__Boost_${component_name} INTERFACE ${Boost_${component_name}_LIBRARY})
 
     add_library(Boost::${component_name} ALIAS __Boost_${component_name})
@@ -8,12 +8,12 @@ endmacro()
 
 macro(define_openssl_crypto_target)
     add_library(__OpenSSL_Crypto INTERFACE)
-    target_include_directories(__OpenSSL_Crypto INTERFACE ${OPENSSL_INCLUDE_DIRS})
+    target_include_directories(__OpenSSL_Crypto SYSTEM INTERFACE ${OPENSSL_INCLUDE_DIRS})
     if(${CMAKE_VERSION} VERSION_LESS 3.2)
         # FindOpenSSL prior to 3.2 doesn't provides separate variable libcrypto
         target_link_libraries(__OpenSSL_Crypto INTERFACE ${OPENSSL_LIBRARIES})
     else()
-        target_link_libraries(__OpenSSL_Crypto INTERFACE ${OPENSSL_CRYPTO_LIBRARY})
+        target_link_libraries(__OpenSSL_Crypto SYSTEM INTERFACE ${OPENSSL_CRYPTO_LIBRARY})
     endif()
 
     add_library(OpenSSL::Crypto ALIAS __OpenSSL_Crypto)

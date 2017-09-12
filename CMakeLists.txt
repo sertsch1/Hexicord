@@ -157,7 +157,7 @@ if(NOT Boost_beast_FOUND)
 
     add_library(__Boost_beast INTERFACE)
     target_link_libraries(__Boost_beast INTERFACE Boost::system OpenSSL::SSL OpenSSL::Crypto)
-    target_include_directories(__Boost_beast INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
+    target_include_directories(__Boost_beast SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
 
     add_library(Boost::beast ALIAS __Boost_beast)
 elseif(CMAKE_VERSION VERSION_LESS 3.5)
