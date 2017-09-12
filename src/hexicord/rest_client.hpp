@@ -423,7 +423,8 @@ namespace Hexicord {
          *
          * \returns Message object.
          */
-        nlohmann::json editMessage(Snowflake channelId, Snowflake messageId, const std::string& text);
+        nlohmann::json editMessage(Snowflake channelId, Snowflake messageId,
+                                   const std::string& text, const nlohmann::json& embed = nullptr);
 
         /**
          * Delete a message. If operating on a guild channel and trying to

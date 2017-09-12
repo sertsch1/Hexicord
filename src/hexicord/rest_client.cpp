@@ -298,13 +298,14 @@ namespace Hexicord {
                                {}, {}, { fileToMultipartEntity(file) });
     }
 
-    nlohmann::json RestClient::editMessage(Snowflake channelId, Snowflake messageId, const std::string& text) {
+    nlohmann::json RestClient::editMessage(Snowflake channelId, Snowflake messageId,
+                                           const std::string& text, const nlohmann::json& embed) {
         if (text.size() > 2000) {
             throw InvalidParameter("text", "text size out of range (should be 0-1024)");
         }
         return sendRestRequest("PATCH", std::string("/channels/") + std::to_string(channelId) +
                                "/messages/" + std::to_string(messageId),
-                               {{ "content", text }});
+                               {{ "content", text }, { "embed", embed }});
     }
 
     void RestClient::deleteMessage(Snowflake channelId, Snowflake messageId) {
