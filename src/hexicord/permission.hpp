@@ -85,7 +85,7 @@ namespace Hexicord {
     };
 
     using Permissions = Flags<Permission, uint64_t>;
-    DECLARE_FLAGS_OPERATORS(Permission);
+    DECLARE_FLAGS_OPERATORS(Permission, uint64_t);
 } // namespace Hexicord
 
 #endif // HEXICORD_PERMISSION_HPP

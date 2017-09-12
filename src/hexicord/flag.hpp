@@ -145,12 +145,12 @@ namespace Hexicord {
 #define DECLARE_FLAGS(flagtype, name) \
         using name = Flags<flagtype>
 
-#define DECLARE_FLAGS_OPERATORS(flagtype) \
+#define DECLARE_FLAGS_OPERATORS(flagtype, storage) \
         constexpr inline Flags<flagtype> operator|(flagtype lhs, flagtype rhs) noexcept { \
-            return Flags<flagtype>(lhs | rhs); \
+            return Flags<flagtype>(storage(lhs) | storage(rhs)); \
         } \
-        constexpr inline Flags<flagtype> operator|(flagtype rhs, Flags<flagtype> lhs) noexcept { \
-            return Flags<flagtype>(rhs | lhs); \
+        constexpr inline Flags<flagtype> operator|(flagtype rhs, Flags<flagtype, storage> lhs) noexcept { \
+            return Flags<flagtype>(rhs | storage(lhs)); \
         }
 
 } // namespace Hexicord
