@@ -62,8 +62,7 @@ nlohmann::json GatewayClient::parseGatewayMessage(const std::vector<uint8_t>& ms
     if (msg[0] == '{') {
         return nlohmann::json::parse(msg);
     }
-    uint8_t* carr = zlib::decompress(msg);
-    return nlohmann::json::parse(carr);
+    return nlohmann::json::parse(Zlib::decompress(msg));
 #else
     return nlohmann::json::parse(msg);
 #endif
