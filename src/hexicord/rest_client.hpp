@@ -385,7 +385,8 @@ namespace Hexicord {
          *
          * \sa \ref sendFile \ref sendRichMessage
          */
-        nlohmann::json sendTextMessage(Snowflake channelId, const std::string& text, bool tts = false);
+        nlohmann::json sendTextMessage(Snowflake channelId, const std::string& text,
+                                       const nlohmann::json& embed = nullptr, bool tts = false);
 
         /**
          * Send a message with a file to a text channel (or DM).

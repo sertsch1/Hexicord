@@ -281,13 +281,15 @@ namespace Hexicord {
         sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/typing");
     }
 
-    nlohmann::json RestClient::sendTextMessage(Snowflake channelId, const std::string& text, bool tts) {
+    nlohmann::json RestClient::sendTextMessage(Snowflake channelId, const std::string& text,
+                                               const nlohmann::json& embed, bool tts) {
         if (text.size() > 2000) throw InvalidParameter("text", "text out of range (should be 0-2000).");
 
         return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/messages",
                 {
-                  { "contents", text },
-                  { "tts",      tts  }
+                  { "content", text  },
+                  { "tts",     tts   },
+                  { "embed",   embed }
                 });
     }
 
@@ -500,7 +502,7 @@ namespace Hexicord {
         if (elements.empty()) {
             if (payload.is_null() || payload.empty()) return;
 
-            request.headers["Content-Type"] = "application/json";
+            request.headers.emplace("Content-Type", "application/json");
 
             std::string jsonStr = payload.dump();
             std::vector<uint8_t> payloadBytes(jsonStr.begin(), jsonStr.end());
