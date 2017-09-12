@@ -372,6 +372,73 @@ namespace Hexicord {
                                               "/bans"     + std::to_string(userId));
     }
 
+    void RestClient::kickMember(Snowflake guildId, Snowflake userId) {
+        sendRestRequest("DELETE", std::string("/guilds/") + std::to_string(guildId) +
+                                              "/members"  + std::to_string(userId));
+    }
+
+    nlohmann::json RestClient::getChannels(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/channels");
+    }
+
+    nlohmann::json RestClient::createChannel(Snowflake guildId, const nlohmann::json& channelFields) {
+        return sendRestRequest("POST", std::string("/guilds/") + std::to_string(guildId) +
+                                                   "/channels", channelFields);
+    }
+
+    void RestClient::reorderChannels(Snowflake guildId, const std::vector<std::pair<Snowflake, unsigned>>& newPositions) {
+        nlohmann::json payload;
+        for (const auto& pair : newPositions) {
+            payload.push_back({{ "id", pair.first }, { "position", pair.second }});
+        }
+        sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(guildId) +
+                                             "/channels");
+    }
+
+    void RestClient::reorderRoles(Snowflake guildId, const std::vector<std::pair<Snowflake, unsigned>>& newPositions) {
+        nlohmann::json payload;
+        for (const auto& pair : newPositions) {
+            payload.push_back({{ "id", pair.first }, { "position", pair.second }});
+        }
+        sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(guildId) +
+                                             "/roles");
+    }
+
+    nlohmann::json RestClient::getRoles(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/roles");
+    }
+
+    nlohmann::json RestClient::createRole(Snowflake guildId, const nlohmann::json& roleObject) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/roles", roleObject);
+    }
+
+    nlohmann::json RestClient::modifyRole(Snowflake guildId, Snowflake roleId,
+                                          const nlohmann::json& updatedFields) {
+        return sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(guildId) +
+                                                    "/roles"    + std::to_string(roleId),
+                               updatedFields);
+    }
+
+    void RestClient::deleteRole(Snowflake guildId, Snowflake roleId) {
+        sendRestRequest("DELETE", std::string("/guilds/") + std::to_string(guildId) +
+                                              "/roles"    + std::to_string(roleId));
+    }
+
+    void RestClient::giveRole(Snowflake guildId, Snowflake userId, Snowflake roleId) {
+        sendRestRequest("PUT", std::string("/guilds/") + std::to_string(guildId) +
+                                           "/members/" + std::to_string(userId) +
+                                           "/roles/"   + std::to_string(roleId));
+    }
+
+    void RestClient::takeRole(Snowflake guildId, Snowflake userId, Snowflake roleId) {
+        sendRestRequest("DELETE", std::string("/guilds/") + std::to_string(guildId) +
+                                              "/members/" + std::to_string(userId) +
+                                              "/roles/"   + std::to_string(roleId));
+    }
+
     nlohmann::json RestClient::getMe() {
         return sendRestRequest("GET", std::string("/users/@me"));
     }

@@ -602,6 +602,148 @@ namespace Hexicord {
          */
         void unbanMember(Snowflake guildId, Snowflake userId);
 
+        /**
+         * Remove a member from a guild.
+         *
+         * Requires 'KICK_MEMBERS' permission. 
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void kickMember(Snowflake guildId, Snowflake userId);
+
+        /**
+         * Get channels for specified guild.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json getChannels(Snowflake guildId);
+
+        /**
+         * Create new channel. 
+         *
+         * Requires MANAGE_CHANNELS permission.
+         *
+         * channelField needs to be filled according to https://discordapp.com/developers/docs/resources/guild#create-guild-channel-json-params
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json createChannel(Snowflake guildId, const nlohmann::json& channelFields);
+
+        /**
+         * Change order of channels.
+         *
+         * Requires MANAGE_CHANNELS permission.
+         *
+         * \note Only channels to be modified are required, with the minimum
+         * being a swap between at least two channels.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void reorderChannels(Snowflake guildId, const std::vector<std::pair<Snowflake, unsigned>>& newPositions);
+
+        /**
+         * Change order of roles.
+         *
+         * Requires MANAGE_ROLES permission.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void reorderRoles(Snowflake guildId, const std::vector<std::pair<Snowflake, unsigned>>& newPositions);
+
+        /// Same as reorderChannels with one pair passed.
+        inline void moveChannel(Snowflake guildId, Snowflake channelId, unsigned newPosition) {
+            reorderChannels(guildId, {{ channelId, newPosition }});
+        }
+
+        /// Same as reorderRoles with one pair passed.
+        inline void moveRole(Snowflake guildId, Snowflake roleId, unsigned newPosition) {
+            reorderRoles(guildId, {{ roleId, newPosition }});
+        }
+
+        /**
+         * Get roles for a guild.
+         */
+        nlohmann::json getRoles(Snowflake guildId);
+
+        /**
+         * Create new role for a guild.
+         *
+         * Requires MANAGE_ROLES permission.
+         *
+         * roleObject needs to be filled according to https://discordapp.com/developers/docs/resources/guild#create-guild-role-json-params
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json createRole(Snowflake guildId, const nlohmann::json& roleObject);
+
+        /**
+         * Modify a role.
+         *
+         * Requires MANAGE_ROLES permission.
+         *
+         * updatedFields needs to be filled according to https://discordapp.com/developers/docs/resources/guild#modify-guild-role-json-params
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        nlohmann::json modifyRole(Snowflake guildId, Snowflake roleId, const nlohmann::json& updatedFields);
+
+        /**
+         * Delete a role.
+         *
+         * Requires MANAGE_ROLES permissions.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void deleteRole(Snowflake guildId, Snowflake roleId);
+
+        /**
+         * Adds a role to a guild member.
+         *
+         * Requires the 'MANAGE_ROLES' permission. 
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void giveRole(Snowflake guildId, Snowflake userId, Snowflake roleId);
+
+        /**
+         * Removes a role from a guild member.
+         *
+         * Requires the 'MANAGE_ROLES' permission.
+         *
+         * Throws RESTError if invalid IDs specified or current user don't
+         * have required permissions. Also may throw 
+         * boost::system::system_error if client fails to connect 
+         * to REST API server.
+         */
+        void takeRole(Snowflake guildId, Snowflake userId, Snowflake roleId);
+
         /// @} REST_guilds
         
         /**
