@@ -90,9 +90,9 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     nlohmann::json message = {
         { "token" , token_ },
         { "properties", {
-            { "os", OS_STR },
-            { "browser", "hexicord" },
-            { "device", "hexicord" }
+            { "$os", OS_STR },
+            { "$browser", "hexicord" },
+            { "$device", "hexicord" }
         }},
 #ifdef HEXICORD_ZLIB
         { "compress", true },
