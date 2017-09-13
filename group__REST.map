@@ -1,0 +1,7 @@
+<map id="REST methods" name="REST methods">
+<area shape="rect" id="node1" href="$group__REST__users.html" title="Methods related to users. " alt="" coords="189,5,309,32"/>
+<area shape="rect" id="node2" href="$group__REST__invites.html" title="Methods related to invites. " alt="" coords="179,56,318,83"/>
+<area shape="rect" id="node3" href="$group__REST__messages.html" title="Methods related to messages. " alt="" coords="169,107,328,133"/>
+<area shape="rect" id="node4" href="$group__REST__guilds.html" title="Methods related to guilds. " alt="" coords="190,157,307,184"/>
+<area shape="rect" id="node6" href="$group__REST__channels.html" title="Methods related to channels. " alt="" coords="175,208,323,235"/>
+</map>
