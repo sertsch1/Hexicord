@@ -75,13 +75,14 @@ int main() {
     RestClient    rclient(ioService, "PUT YOUR TOKEN HERE");
 
     gclient.eventsDispatcher.addHandler(Event::MessageCreate, [&client](const nlohmann::json& message) {
-        rclient.sendMessage(message["channel_id", message["content"]);
+        rclient.sendTextMessage(Hexicord::Snowflake(message["channel_id"]), message["content"]);
     });
 
-    gclient.connectToGateway(rclient.getGatewayUrlBot().first); // replace with client.getGatewayUrl() if not using bot account.
+    gclient.connect(rclient.getGatewayUrlBot().first); // replace with rclient.getGatewayUrl() if not using bot account.
     ios.run(); 
 }
 ```
+For more powerful example see [examples/echo-bot](examples/echo-bot).
 
 ### Documentation
 
