@@ -174,7 +174,7 @@ set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} Boost::beast)
 
 macro(hexicord_config type option_name docstring default_value)
     set(${option_name} ${default_value} CACHE ${type} ${docstring})
-    message(STATUS "Hexicord configuration: ${option_name} = ${default_value}")
+    message(STATUS "Hexicord configuration: ${option_name} = ${${option_name}}")
 endmacro()
 
 hexicord_config(STRING HEXICORD_GITHUB "URL to send in UA." "https://github.com/foxcpp/Hexicord")
