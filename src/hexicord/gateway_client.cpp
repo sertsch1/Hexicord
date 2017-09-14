@@ -71,7 +71,7 @@ nlohmann::json GatewayClient::parseGatewayMessage(const std::vector<uint8_t>& ms
 }
 
 void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shardCount,
-                            const nlohmann::json& initialPresense) {
+                            const nlohmann::json& initialPresence) {
 
     if (activeSession) disconnect(2000);
     activeSession = false;
@@ -100,7 +100,7 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
         { "compress", false },
 #endif
         { "large_threshold", 250 }, // should be changeble
-        { "presense", initialPresense }
+        { "presence", initialPresence }
     };
 
 
@@ -125,6 +125,7 @@ void GatewayClient::connect(const std::string& gatewayUrl, int shardId, int shar
     shardId_            = shardId;
     shardCount_         = shardCount;
     lastSequenceNumber_ = 0;
+    lastPresence        = initialPresence;
 
     activeSession = true;
 
@@ -236,6 +237,10 @@ nlohmann::json GatewayClient::waitForEvent(Event type) {
     return lastMessage["d"];
 }
 
+void GatewayClient::updatePresence(const nlohmann::json& newPresence) {
+    sendMessage(OpCode::StatusUpdate, newPresence);
+}
+
 void GatewayClient::recoverConnection() {
     DEBUG_MSG("Lost gateway connection, recovering...");
     disconnect(NoCloseEvent);
@@ -244,7 +249,7 @@ void GatewayClient::recoverConnection() {
         resume(lastGatewayUrl_, sessionId_, lastSequenceNumber_, shardId_, shardCount_);
     } catch (GatewayError& excp) {
         DEBUG_MSG("Resume failed, starting new session...");
-        connect(lastGatewayUrl_, shardId_, shardCount_);
+        connect(lastGatewayUrl_, shardId_, shardCount_, lastPresence);
     }
 }
 

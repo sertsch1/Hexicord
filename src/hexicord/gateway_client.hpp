@@ -96,7 +96,7 @@ namespace Hexicord {
          */
         void connect(const std::string& gatewayUrl,
                      /* sharding info: */ int shardId = NoSharding, int shardCount = NoSharding,
-                     const nlohmann::json& initialPresense = {{ "game", nullptr },
+                     const nlohmann::json& initialPresence = {{ "game", nullptr },
                                                               { "status", "online" },
                                                               { "since", nullptr },
                                                               { "afk", false }});
@@ -162,6 +162,11 @@ namespace Hexicord {
          * not well defined in all cases.
          */
         nlohmann::json waitForEvent(Event type);
+
+        /**
+         * Update presence (user status).
+         */
+        void updatePresence(const nlohmann::json& newPresence);
 
         /**
          * Event dispatcher instance used for gateway
@@ -245,6 +250,8 @@ private:
         std::string sessionId_, lastGatewayUrl_, token_;
         int shardId_ = NoSharding, shardCount_ = NoSharding;
         int lastSequenceNumber_ = 0;
+        nlohmann::json lastPresence;
+
 
         std::unique_ptr<TLSWebSocket> gatewayConnection;
         boost::asio::io_service& ioService; // non-owning reference to I/O service.
