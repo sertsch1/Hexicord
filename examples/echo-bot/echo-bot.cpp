@@ -24,6 +24,10 @@ int main(int argc, char** argv) {
     std::map<Hexicord::Snowflake, bool> switchFlags;;
     nlohmann::json me;
 
+    gclient.eventDispatcher.addHandler(Hexicord::Event::Ready, [&me](const nlohmann::json& json) {
+        me = json["user"];
+    });
+
     gclient.eventDispatcher.addHandler(Hexicord::Event::MessageCreate, [&](const nlohmann::json& json) {
         Hexicord::Snowflake messageId(json["id"].get<std::string>());
         Hexicord::Snowflake channelId(json["channel_id"].get<std::string>());
@@ -97,12 +101,11 @@ int main(int argc, char** argv) {
                     {
                         { "since", nullptr   },
                         { "status", "online" },
-                        { "game", {{ "name", "echo-bot turn-on"}, { "type", 0 } }}
+                        { "game", {{ "name", "echo-bot turn-on"}, { "type", 0 }}},
+                        { "afk", false }
                     });
 
-    // API doesn't allows us to perform requests until we connect to gateway.
-    me = rclient.getMe();
 
-    /// Run for undetermined amount of time.
+    // Run for undetermined amount of time.
     ioService.run();
 }
