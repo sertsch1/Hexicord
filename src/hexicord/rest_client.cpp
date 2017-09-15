@@ -472,25 +472,15 @@ namespace Hexicord {
         return sendRestRequest("PATCH", "/users/@me", {{ "username", newUsername }});
     }
 
-    nlohmann::json RestClient::setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format) {
+    nlohmann::json RestClient::setAvatar(const Image& image) {
         std::string mimeType;
 
-        if (format == Gif  || (format == Detect && Utils::Magic::isGif(avatarBytes)))  mimeType = "image/gif";
-        if (format == Jpeg || (format == Detect && Utils::Magic::isJfif(avatarBytes))) mimeType = "image/jpeg";
-        if (format == Png  || (format == Detect && Utils::Magic::isPng(avatarBytes)))  mimeType = "image/png";
+        if (image.format == Gif)  mimeType = "image/gif";
+        if (image.format == Jpeg) mimeType = "image/jpeg";
+        if (image.format == Png)  mimeType = "image/png";
 
-        if (mimeType.empty()) {
-            throw InvalidParameter("avatarBytes", "Failed to detect avatar format.");
-        }
-
-        std::string dataUrl = std::string("data:") + mimeType + ";base64," + Utils::base64Encode(avatarBytes);
+        std::string dataUrl = std::string("data:") + mimeType + ";base64," + Utils::base64Encode(image.file.bytes);
         return sendRestRequest("PATCH", "/users/@me", {{ "avatar", dataUrl }});
-    }
-
-    nlohmann::json RestClient::setAvatar(std::istream&& avatarStream, AvatarFormat format) {
-        // TODO: Implement stream sending.
-        std::vector<uint8_t> avatarBytes{std::istreambuf_iterator<char>(avatarStream), std::istreambuf_iterator<char>()};
-        return setAvatar(avatarBytes, format);
     }
 
     nlohmann::json RestClient::getUserGuilds(unsigned short limit, Snowflake startId, bool before) {

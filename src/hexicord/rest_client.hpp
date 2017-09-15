@@ -803,17 +803,6 @@ namespace Hexicord {
          */
         nlohmann::json setUsername(const std::string& newUsername);
 
-        enum AvatarFormat {
-            /// Try to detect avatar format. 
-            /// Always works for valid PNG/GIF/JPEG but may also "detect"
-            /// image in arbitary data.
-            Detect,
-            
-            Png,
-            Gif,
-            Jpeg
-        };
-
         /**
          * Change avatar.
          *
@@ -823,19 +812,7 @@ namespace Hexicord {
          *                                                                   
          * \returns User object after change.
          */
-        nlohmann::json setAvatar(const std::vector<uint8_t>& avatarBytes, AvatarFormat format = Detect);
-
-        /**
-         * Change avatar.
-         *
-         * Convenience overload. Reads stream into vector and passes to first overload.
-         *
-         * \throws RESTError on API error (???).
-         * \throws boost::system::system_error on connection problem (rare).
-         *                                                                   
-         * \returns User object after change.
-         */
-        nlohmann::json setAvatar(std::istream&& avatarStream, AvatarFormat format = Detect);
+        nlohmann::json setAvatar(const Image& image);
 
         /**
          * Returns list of partial guild object the current user is member of.
