@@ -70,6 +70,19 @@ namespace Hexicord { namespace Utils {
                 bytes[6] == 26  && // SUB
                 bytes[7] == 10;    // LF
         }
+
+        bool isWebp(const std::vector<uint8_t>& bytes) {
+            // according to https://developers.google.com/speed/webp/docs/riff_container?csw=1
+            return bytes.size() >= 12 && // 'RIFF' + size + 'WEBP'
+                bytes[0]  == 'R' &&
+                bytes[1]  == 'I' &&
+                bytes[2]  == 'F' &&
+                bytes[3]  == 'F' &&
+                bytes[8]  == 'W' &&
+                bytes[9]  == 'E' &&
+                bytes[10] == 'B' &&
+                bytes[11] == 'P';
+        }
     }
 
 	std::string domainFromUrl(const std::string& url) {

@@ -39,6 +39,7 @@ namespace Hexicord { namespace Utils {
         bool isGif(const std::vector<uint8_t>& bytes);
         bool isJfif(const std::vector<uint8_t>& bytes);
         bool isPng(const std::vector<uint8_t>& bytes);
+        bool isWebp(const std::vector<uint8_t>& bytes);
     }
 
     /**
