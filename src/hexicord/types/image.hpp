@@ -90,7 +90,7 @@ namespace Hexicord {
     } // namespace _detail
 
     /**
-     * Reference to remote image.
+     * Reference to remote image stored on Discord CDN.
      */
     template<ImageType Type>
     struct ImageReference {
@@ -98,6 +98,14 @@ namespace Hexicord {
             : id(id)
             , hash(hash) {}
 
+        /**
+         * Return remote URL for this image on cdn.discordapp.com.
+         *
+         * Can be useful if you want to reference image from message embed or 
+         * somewhere else without downloading it.
+         *
+         * size can be power of two between 16 and 2048.
+         */
         template<ImageFormat Format>
         inline std::string url(unsigned short size) const {
             // Construct path like this:
@@ -108,6 +116,26 @@ namespace Hexicord {
                    "?size=" + std::to_string(size);
         }
 
+        /**
+         * Check whatever image is animated (GIF).
+         *
+         * Animated avatars can be \ref download()'ed as PNG or other regular format, but
+         * attempt to download regular avatar as GIF will throw LogicError.
+         *
+         * Always false for \ref ImageType other than \ref UserAvatar.
+         */
+        inline bool isAnimated() const {
+            // check if hash begins with "a_".
+            return hash.size() >= 2 && hash[0] == 'a' && hash[1] == '_';
+        }
+
+        /**
+         * Download this image. ioService used to construct HTTP connection object.
+         * size can be power of two between 16 and 2048.
+         *
+         * May throw LogicError if body is empty (see \ref isAnimated()) and
+         * boost::system::system_error on connection error.
+         */
         template<ImageFormat Format>
         inline Image download(boost::asio::io_service& ioService, unsigned short size) const {
             static_assert(_detail::isSupportedFormat(Type, Format), "Format is not supported for this image type.");
@@ -127,8 +155,19 @@ namespace Hexicord {
         inline ImageReference(const std::string& hash)
             : hash(hash) {}
 
+        /**
+         * Return remote URL for this image on cdn.discordapp.com.
+         *
+         * Can be useful if you want to reference image from message embed or 
+         * somewhere else without downloading it.
+         *
+         * size can be power of two between 16 and 2048.
+         */
         template<ImageFormat Format>
         inline std::string url(unsigned short size) const {
+            static_assert(_detail::isSupportedFormat(CustomEmoji, Format), "Format is not supported for this image type.");
+            if (!_detail::isPowerOfTwo(size)) throw LogicError("Image size must be power of two.", -1);
+
             // Construct path like this:
             //   {base_path}/{id}/{hash}.{format_extension}?size={size}
             //   avatars/339355417366888458/35fa476e4898faf740cc48edb989f20c.png?size=2048
@@ -137,11 +176,28 @@ namespace Hexicord {
                    "?size=" + std::to_string(size);
         }
 
+        /**
+         * Check whatever image is animated (GIF).
+         *
+         * Animated avatars can be \ref download()'ed as PNG or other regular format, but
+         * attempt to download regular avatar as GIF will throw LogicError.
+         *
+         * Always false for \ref ImageType other than \ref UserAvatar.
+         */
+        inline bool isAnimated() const {
+            // check if hash begins with "a_".
+            return hash.size() >= 2 && hash[0] == 'a' && hash[1] == '_';
+        }
+
+        /**
+         * Download this image. ioService used to construct HTTP connection object.
+         * size can be power of two between 16 and 2048.
+         *
+         * May throw LogicError if body is empty (see \ref isAnimated()) and
+         * boost::system::system_error on connection error.
+         */
         template<ImageFormat Format>
         inline Image download(boost::asio::io_service& ioService, unsigned short size) const {
-            static_assert(_detail::isSupportedFormat(CustomEmoji, Format), "Format is not supported for this image type.");
-            if (!_detail::isPowerOfTwo(size)) throw LogicError("Image size must be power of two.", -1);
-
             return Image(File(hash + "." + _detail::formatExtension<Format>(),
                               _detail::cdnDownload(ioService, url<Format>(size))),
                          Format);
@@ -155,6 +211,14 @@ namespace Hexicord {
         inline ImageReference(const int userDiscriminator)
             : userDiscriminator(userDiscriminator) {}
 
+        /**
+         * Return remote URL for this image on cdn.discordapp.com.
+         *
+         * Can be useful if you want to reference image from message embed or 
+         * somewhere else without downloading it.
+         *
+         * size can be power of two between 16 and 2048.
+         */
         template<ImageFormat Format>
         inline std::string url(unsigned short size) const {
             // Construct path like this:
@@ -165,6 +229,25 @@ namespace Hexicord {
                    "?size=" + std::to_string(size);
         }
 
+        /**
+         * Check whatever image is animated (GIF).
+         *
+         * Animated avatars can be \ref download()'ed as PNG or other regular format, but
+         * attempt to download regular avatar as GIF will throw LogicError.
+         *
+         * Always false for \ref ImageType other than \ref UserAvatar.
+         */
+        constexpr inline bool isAnimated() const {
+            return false;
+        }
+
+        /**
+         * Download this image. ioService used to construct HTTP connection object.
+         * size can be power of two between 16 and 2048.
+         *
+         * May throw LogicError if body is empty (see \ref isAnimated()) and
+         * boost::system::system_error on connection error.
+         */
         template<ImageFormat Format>
         inline Image download(boost::asio::io_service& ioService, unsigned short size) const {
             static_assert(_detail::isSupportedFormat(CustomEmoji, Format), "Format is not supported for this image type.");
