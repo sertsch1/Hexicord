@@ -1,9 +1,9 @@
 ## avatar-stealer example
 
 Example of `ImageReference` usage.
-Downloads all seen guild and users avatar to current directory.
+Downloads all seen guild and users avatars to current directory.
 
-Only PNG. Downloads animated avatars as PNG.
+**Only PNG. Downloads animated avatars as PNG.**
 
 | Environment Variable | Usage               |
 | -------------------- | ------------------- |
