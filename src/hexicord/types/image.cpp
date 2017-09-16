@@ -1,7 +1,7 @@
 #include <hexicord/types/image.hpp>
 
 #include <boost/asio/io_service.hpp>   // boost::asio::io_service
-#include <hexicord/internal/utils.hpp> // Utils::Magic
+#include <hexicord/internal/utils.hpp> // Utils::Magic, Utils::base64Encode
 #include <hexicord/exceptions.hpp>     // LogicError
 #include <hexicord/internal/rest.hpp>  // REST::HTTPSConnection
 
@@ -11,6 +11,16 @@ Image::Image(const File& file, ImageFormat format)
     : format(format == ImageFormat::Detect ? detectFormat(file) : format)
     , file(file)
 {}
+
+std::string Image::toAvatarData() const {
+    std::string mimeType;
+    if (format == Jpeg) mimeType = "image/jpeg";
+    if (format == Png)  mimeType = "image/png";
+    if (format == Webp) mimeType = "image/webp";
+    if (format == Gif)  mimeType = "image/gif";
+
+    return std::string("data:") + mimeType + ";base64," + Utils::base64Encode(file.bytes);
+}
 
 ImageFormat Image::detectFormat(const File& file) {
     if (Utils::Magic::isJfif(file.bytes)) return ImageFormat::Jpeg;

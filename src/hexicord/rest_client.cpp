@@ -473,14 +473,7 @@ namespace Hexicord {
     }
 
     nlohmann::json RestClient::setAvatar(const Image& image) {
-        std::string mimeType;
-
-        if (image.format == Gif)  mimeType = "image/gif";
-        if (image.format == Jpeg) mimeType = "image/jpeg";
-        if (image.format == Png)  mimeType = "image/png";
-
-        std::string dataUrl = std::string("data:") + mimeType + ";base64," + Utils::base64Encode(image.file.bytes);
-        return sendRestRequest("PATCH", "/users/@me", {{ "avatar", dataUrl }});
+        return sendRestRequest("PATCH", "/users/@me", {{ "avatar", image.toAvatarData() }});
     }
 
     nlohmann::json RestClient::getUserGuilds(unsigned short limit, Snowflake startId, bool before) {
@@ -550,6 +543,49 @@ namespace Hexicord {
         if (unique)               payload["unique"]               = true;
 
         return sendRestRequest("DELETE", std::string("/channels") + std::to_string(channelId), payload);
+    }
+
+    nlohmann::json RestClient::getWebhook(Snowflake id) {
+        return sendRestRequest("GET", std::string("/webhooks/") + std::to_string(id));
+    }
+
+    nlohmann::json RestClient::getChannelWebhooks(Snowflake channelId) {
+        return sendRestRequest("GET", std::string("/channels/") + std::to_string(channelId) +
+                                                  "/webhooks");
+    }
+
+    nlohmann::json RestClient::getGuildWebhooks(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/webhooks");
+    }
+
+    nlohmann::json RestClient::createWebhook(Snowflake channelId, const std::string& name, const boost::optional<Image>& avatar) {
+        nlohmann::json payload;
+        if (name.size() == 1 || name.size() > 32) {
+            throw InvalidParameter("name", "size out of range (should be 2-32)");
+        }
+        payload["name"] = name;
+        if (avatar) {
+            payload["avatar"] = avatar->toAvatarData();
+        }
+        return sendRestRequest("POST", std::string("/channels/") + std::to_string(channelId) + "/webhooks",
+                               payload);
+    }
+
+    nlohmann::json RestClient::setWebhookName(Snowflake id, const std::string& newName) {
+        if (newName.size() == 1 || newName.size() > 32) {
+            throw InvalidParameter("name", "size out of range (should be 2-32)");
+        }
+        return sendRestRequest("PATCH", std::string("/webhooks/") + std::to_string(id), {{ "name", newName }});
+    }
+
+    nlohmann::json RestClient::setWebhookAvatar(Snowflake id, const Image& avatar) {
+        return sendRestRequest("PATCH", std::string("/webhooks/") + std::to_string(id),
+                               {{ "avatar", avatar.toAvatarData() }});
+    }
+
+    void RestClient::deleteWebhook(Snowflake id) {
+        sendRestRequest("DELETE", std::string("/webhooks/") + std::to_string(id));
     }
 
     void RestClient::prepareRequestBody(REST::HTTPRequest& request,

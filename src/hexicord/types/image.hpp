@@ -41,6 +41,11 @@ namespace Hexicord {
         const ImageFormat format;
         const File file;
 
+        /**
+         * Convert string to form usable for sending in various REST methods.
+         * Users of library is not expected to use this method directly.
+         */
+        std::string toAvatarData() const;
     private:
         ImageFormat detectFormat(const File& file);
     };

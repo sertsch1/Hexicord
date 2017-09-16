@@ -995,6 +995,54 @@ namespace Hexicord {
                                     bool unique = false);
 
         /// @} REST_invites
+
+        /// \defgroup REST_webhooks Webhook operations
+        /// @{
+
+        /**
+         * Create new webhook.
+         *
+         * Requires MANAGE_WEBHOOKS permission.
+         *
+         * name is limited to 2-32 characters.
+         * avatar must be 128x128.
+         */
+        nlohmann::json createWebhook(Snowflake channelId, const std::string& name, const boost::optional<Image>& avatar);
+
+        /**
+         * Get a webhook by it's ID.
+         */
+        nlohmann::json getWebhook(Snowflake id);
+
+        /**
+         * Get webhhoks for specified channel.
+         */
+        nlohmann::json getChannelWebhooks(Snowflake channelId);
+
+        /**
+         * Get webhhoks for specified guild.
+         */
+        nlohmann::json getGuildWebhooks(Snowflake guildId);
+
+        /**
+         * Change webhook name, name is limited to 2-3 characters.
+         */
+        nlohmann::json setWebhookName(Snowflake id, const std::string& newName);
+
+        /**
+         * Change webhook avatar, image must be 128x128.
+         */
+        nlohmann::json setWebhookAvatar(Snowflake id, const Image& image);
+
+        /**
+         * Delete webhook by it's id.
+         *
+         * User must be owner or must have MANAGE_WEBHOOKS permission [TODO: check].
+         */
+        void deleteWebhook(Snowflake id);
+
+        /// @} REST_webhooks
+
         /// @} REST
 
 
