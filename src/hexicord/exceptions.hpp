@@ -101,7 +101,7 @@ namespace Hexicord {
 
     /// Thrown if either pre-request parameter validation fails or server returns
     /// message about invalid parameter.
-    /// Errors parameter contained in \ref paramter, error description in \ref description.
+    /// Errors parameter contained in \ref parameter, error description in \ref description.
     /// \note Name in parameter may or not may be same as exact invalid parameter name.
     class InvalidParameter : public RESTError {
     public:

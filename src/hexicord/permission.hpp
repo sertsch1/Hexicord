@@ -26,7 +26,7 @@
 #include "flag.hpp"     // Hexicord::Flag
 
 /**
- *  \file permissions.hpp
+ *  \file permission.hpp
  *
  *  Defines enumeration Permission and Flags<Permission> alias.
  */
