@@ -382,6 +382,78 @@ namespace Hexicord {
                                                   "/channels");
     }
 
+    nlohmann::json RestClient::getMembers(Snowflake guildId, unsigned limit, Snowflake after) {
+        return sendRestRequest(std::string("/guilds/") + std::to_string(guildId) + "/members", {},
+                               {}, {{ "limit", std::to_string(limit) }, { "after", std::to_string(after) }});
+    }
+
+    nlohmann::json RestClient::getMember(Snowflake guildId, Snowflake userId) {
+        return sendRestRequest("GET", std::string("/guilds/") +  std::to_string(guildId) +
+                                                  "/members/" +  std::to_string(userId));
+    }
+
+    void RestClient::setMemberNickname(Snowflake guildId, Snowflake userId, const std::string& newNick) {
+        sendRestRequest("PATCH", std::string("/guilds")  + std::to_string(guildId) +
+                                             "/members/" + std::to_string(userId),
+                        {{ "nick", newNick }});
+    }
+
+    void RestClient::setMemberRoles(Snowflake guildId, Snowflake userId, const std::vector<Snowflake>& newRoles) {
+        sendRestRequest("PATCH", std::string("/guilds")  + std::to_string(guildId) +
+                                             "/members/" + std::to_string(userId),
+                        {{ "roles", newRoles }});
+    }
+
+    void RestClient::setMemberMute(Snowflake guildId, Snowflake userId, bool muted) {
+        sendRestRequest("PATCH", std::string("/guilds")  + std::to_string(guildId) +
+                                             "/members/" + std::to_string(userId),
+                        {{ "mute", muted }});
+    }
+
+    void RestClient::setMemberDeaf(Snowflake guildId, Snowflake userId, bool deafen) {
+        sendRestRequest("PATCH", std::string("/guilds")  + std::to_string(guildId) +
+                                             "/members/" + std::to_string(userId),
+                        {{ "deaf", deafen }});
+    }
+
+    void RestClient::moveMember(Snowflake guildId, Snowflake userId, Snowflake targetChannel) {
+        sendRestRequest("PATCH", std::string("/guilds")  + std::to_string(guildId) +
+                                             "/members/" + std::to_string(userId),
+                        {{ "channel_id", targetChannel }});
+    }
+
+    nlohmann::json RestClient::getGuildIntegrations(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/integrations");
+    }
+
+    void RestClient::attachIntegration(Snowflake guildId, const std::string& type, Snowflake integrationId) {
+        sendRestRequest("POST", std::string("/guilds/") + std::to_string(guildId) +
+                                            "/integrations",
+                        {{ "type", type }, { "id", integrationId }});
+    }
+
+    void RestClient::detachIntegration(Snowflake guildId, Snowflake integrationId) {
+        sendRestRequest("DELETE", std::string("/guilds/")      + std::to_string(guildId) +
+                                              "/integrations/" + std::to_string(integrationId));
+    }
+
+    void RestClient::syncIntegration(Snowflake guildId, Snowflake integrationId) {
+        sendRestRequest("POST", std::string("/guilds/")      + std::to_string(guildId) +
+                                            "/integrations/" + std::to_string(integrationId) +
+                                            "/sync");
+    }
+
+    nlohmann::json RestClient::getGuildEmbed(Snowflake guildId) {
+        return sendRestRequest("GET", std::string("/guilds/") + std::to_string(guildId) +
+                                                  "/embed");
+    }
+
+    void RestClient::modifyGuildEmbed(Snowflake guildId, bool enabled, Snowflake channelId) {
+        sendRestRequest("PATCH", std::string("/guilds/") + std::to_string(guildId) +
+                                             "/embed", {{ "enabled", enabled }, { "channel_id", channelId }});
+    }
+
     nlohmann::json RestClient::createChannel(Snowflake guildId, const nlohmann::json& channelFields) {
         return sendRestRequest("POST", std::string("/guilds/") + std::to_string(guildId) +
                                                    "/channels", channelFields);

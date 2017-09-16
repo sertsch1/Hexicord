@@ -557,6 +557,131 @@ namespace Hexicord {
         void deleteRole(Snowflake guildId, Snowflake roleId);
 
         /**
+         * Get JSON array of guild members.
+         * Returns guild member objects as described at
+         * https://discordapp.com/developers/docs/resources/guild#GUILD/guild-member-object
+         *
+         * limit is maximum amount of members to return (1-1000).
+         *
+         * after is exactly what you may think: "return members after this id". Discord
+         * docs say "the highest user id in the previous page", but we know that returned
+         * array is sorted by ids, so basicly it's same as "last user id in the
+         * previous page".
+         */
+        nlohmann::json getMembers(Snowflake guildId, unsigned limit = 100, Snowflake after = 0);
+
+        /**
+         * Return guild member object as described at
+         * https://discordapp.com/developers/docs/resources/guild#GUILD/guild-member-object
+         */
+        nlohmann::json getMember(Snowflake guildId, Snowflake userId);
+
+        /**
+         * Change user nickname for a guild.
+         *
+         * Requires MANAGE_NICKNAMES permission.
+         */
+        void setMemberNickname(Snowflake guildId, Snowflake userId, const std::string& newNick);
+
+        /**
+         * Set guild member roles.
+         *
+         * Requires MANAGE_ROLES permission.
+         */
+        void setMemberRoles(Snowflake guildId, Snowflake userId, const std::vector<Snowflake>& newRoles);
+
+        /**
+         * Mute/unmute member.
+         *
+         * Requires MUTE_MEMBERS permission.
+         */
+        void setMemberMute(Snowflake guildId, Snowflake userId, bool muted = true);
+
+        /// Same as setMemberMute(guildId, userId, true);
+        inline void muteMember(Snowflake guildId, Snowflake userId) {
+            setMemberMute(guildId, userId, true);
+        }
+
+        /// Same as setMemberMute(guildId, userId, true);
+        inline void unmuteMember(Snowflake guildId, Snowflake userId) {
+            setMemberMute(guildId, userId, false);
+        }
+
+        /**
+         * Deaf/undeaf member.
+         *
+         * Requires DEAFEN_MEMBERS permission.
+         */
+        void setMemberDeaf(Snowflake guildId, Snowflake userId, bool deafen = true);
+
+        // Same as setMemberDeaf(guildId, userId, true);
+        inline void deafMember(Snowflake guildId, Snowflake userId) {
+            setMemberDeaf(guildId, userId, true);
+        }
+
+        // Same as setMemberDeaf(guildId, userId, true);
+        inline void undeafMember(Snowflake guildId, Snowflake userId) {
+            setMemberDeaf(guildId, userId, false);
+        }
+
+        /**
+         * Move member to voice channel.
+         *
+         * Can only be used if member already connected to voice. API must have
+         * permission to connect to target channel and MOVE_MEMBERS permission.
+         */
+        void moveMember(Snowflake guildId, Snowflake userId, Snowflake targetChannel);
+
+        /**
+         * Returns a list of integration objects for the guild.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        nlohmann::json getGuildIntegrations(Snowflake guildId);
+
+        /**
+         * Attach an integration object from the current user to the guild.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        void attachIntegration(Snowflake guildId, const std::string& type, Snowflake integrationId);
+
+        /**
+         * See https://discordapp.com/developers/docs/resources/guild#modify-guild-integration
+         * There would be better documentation, but we don't know what these fields mean.
+         */
+        void modifyAttachedIntegration(Snowflake guildId, Snowflake integrationId,
+                                       int expireBehavior, int expireGracePerior, bool enableEmoticons);
+
+        /**
+         * Delete the attached integration object for the guild.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        void detachIntegration(Snowflake guildId, Snowflake integrationId);
+
+        /**
+         * Sync an integration.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        void syncIntegration(Snowflake guildId, Snowflake integrationId);
+
+        /**
+         * Get guild embed object.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        nlohmann::json getGuildEmbed(Snowflake guildId);
+
+        /**
+         * Update embed object for the guild.
+         *
+         * Requires the 'MANAGE_GUILD' permission.
+         */
+        void modifyGuildEmbed(Snowflake guildId, bool enabled, Snowflake channelId);
+
+        /**
          * Adds a role to a guild member.
          *
          * Requires the 'MANAGE_ROLES' permission.
