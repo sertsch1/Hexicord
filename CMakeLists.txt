@@ -108,15 +108,40 @@ endif()
 
 #------------------------------------------------------------------------------
 # External dependencies
-
+option(Boost_USE_FROM_DEPS "Use boost from deps" ON)
 option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
+
+option(OpenSSL_USE_FROM_DEPS "Use openssl from deps" ON)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 
-find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenSSL REQUIRED)
+# Default cryptop libs#
+set(crypto_lib OpenSSL::Crypto)
+set(ssl_lib OpenSSL::SSL)
 
-set(HEXICORD_DEPENDENCIES Threads::Threads Boost::system OpenSSL::SSL OpenSSL::Crypto)
+
+if ("${EXTERNAL_BASE_PATH}" STREQUAL "")
+	# Set paths
+	SET(EXTERNAL_BASE_PATH ${PROJECT_SOURCE_DIR}/external)
+endif()
+
+if(not Boost_USE_FROM_DEPS)
+	find_package(Boost REQUIRED COMPONENTS system)
+else()
+	add_subdirectory(${EXTERNAL_BASE_PATH}/boost)
+endif()
+
+if(not OpenSSL_USE_FROM_DEPS)
+	find_package(OpenSSL REQUIRED)
+else()
+	add_subdirectory(${EXTERNAL_BASE_PATH}/openssl)
+	
+	# Paul's openssl lib differs from original lib names
+	set(crypto_lib crypto)
+	set(ssl_lib ssl)
+endif()
+
+set(HEXICORD_DEPENDENCIES Threads::Threads Boost::system ${ssl_lib} ${crypto_lib})
 
 #------------------------------------------------------------------------------
 # POSIX Threads
