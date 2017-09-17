@@ -108,10 +108,10 @@ endif()
 
 #------------------------------------------------------------------------------
 # External dependencies
-option(Boost_USE_FROM_DEPS "Use boost from deps" OFF)
+option(Boost_USE_FROM_DEPS "Use boost from deps" ON)
 option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
-option(Boost_USE_BEAST_FROM_DEPS "Use boost beast from deps" OFF)
+option(Boost_USE_BEAST_FROM_DEPS "Use boost beast from deps" ON)
 
 option(OpenSSL_USE_FROM_DEPS "Use openssl from deps" OFF)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
