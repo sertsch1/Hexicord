@@ -120,6 +120,8 @@ option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
 set(crypto_lib OpenSSL::Crypto)
 set(ssl_lib OpenSSL::SSL)
 
+# Boost lib differs
+set(boost_lib Boost::system)
 
 if ("${EXTERNAL_BASE_PATH}" STREQUAL "")
 	# Set paths
@@ -129,20 +131,21 @@ endif()
 if(NOT Boost_USE_FROM_DEPS)
 	find_package(Boost REQUIRED COMPONENTS system)
 else()
-	add_subdirectory(${EXTERNAL_BASE_PATH}/boost)
+	add_subdirectory(${EXTERNAL_BASE_PATH}/boost ../bin_hexicord_boost)
+	set(boost_lib boost::system)
 endif()
 
 if(NOT OpenSSL_USE_FROM_DEPS)
 	find_package(OpenSSL REQUIRED)
 else()
-	add_subdirectory(${EXTERNAL_BASE_PATH}/openssl)
+	add_subdirectory(${EXTERNAL_BASE_PATH}/openssl ../bin_hexicord_openssl)
 	
 	# Paul's openssl lib differs from original lib names
 	set(crypto_lib crypto)
 	set(ssl_lib ssl)
 endif()
 
-set(HEXICORD_DEPENDENCIES Threads::Threads Boost::system ${ssl_lib} ${crypto_lib})
+set(HEXICORD_DEPENDENCIES Threads::Threads ${boost_lib} ${ssl_lib} ${crypto_lib})
 
 #------------------------------------------------------------------------------
 # POSIX Threads
@@ -186,7 +189,7 @@ if(NOT Boost_USE_BEAST_FROM_DEPS)
 		message(STATUS "No system boost.beast found, using lib/beast...")
 
 		add_library(__Boost_beast INTERFACE)
-		target_link_libraries(__Boost_beast INTERFACE Boost::system ${ssl_lib} ${crypto_lib})
+		target_link_libraries(__Boost_beast INTERFACE ${boost_lib} ${ssl_lib} ${crypto_lib})
 		target_include_directories(__Boost_beast SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
 
 		add_library(Boost::beast ALIAS __Boost_beast)
@@ -198,7 +201,7 @@ else()
 	SET(BOOST_BEAST_ROOT ${EXTERNAL_BASE_PATH}/beast)
 	add_library(__Boost_beast INTERFACE)
 	
-	target_link_libraries(__Boost_beast INTERFACE Boost::system ${ssl_lib} ${crypto_lib})
+	target_link_libraries(__Boost_beast INTERFACE ${boost_lib} ${ssl_lib} ${crypto_lib})
 	target_include_directories(__Boost_beast SYSTEM INTERFACE ${BOOST_BEAST_ROOT}/include)
 endif()
 
