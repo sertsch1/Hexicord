@@ -111,6 +111,7 @@ endif()
 option(Boost_USE_FROM_DEPS "Use boost from deps" ON)
 option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
+option(Boost_USE_BEAST_FROM_DEPS "Use boost beast from deps" ON)
 
 option(OpenSSL_USE_FROM_DEPS "Use openssl from deps" ON)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
@@ -174,24 +175,34 @@ endif()
 #------------------------------------------------------------------------------
 # Beast
 
-find_package(Boost OPTIONAL_COMPONENTS beast)
+if(NOT Boost_USE_BEAST_FROM_DEPS)
+	find_package(Boost OPTIONAL_COMPONENTS beast)
 
-if(NOT Boost_beast_FOUND)
-    if(NOT EXISTS ${PROJECT_SOURCE_DIR}/lib/beast/include)
-        message(FATAL_ERROR "Your system boost doesnt have beast component. Initialize lib/beast submodule using git submodule update --init.")
-    endif()
+	if(NOT Boost_beast_FOUND)
+		if(NOT EXISTS ${PROJECT_SOURCE_DIR}/lib/beast/include)
+			message(FATAL_ERROR "Your system boost doesnt have beast component. Initialize lib/beast submodule using git submodule update --init.")
+		endif()
 
-    message(STATUS "No system boost.beast found, using lib/beast...")
+		message(STATUS "No system boost.beast found, using lib/beast...")
 
-    add_library(__Boost_beast INTERFACE)
-    target_link_libraries(__Boost_beast INTERFACE Boost::system OpenSSL::SSL OpenSSL::Crypto)
-    target_include_directories(__Boost_beast SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
+		add_library(__Boost_beast INTERFACE)
+		target_link_libraries(__Boost_beast INTERFACE Boost::system ${ssl_lib} ${crypto_lib})
+		target_include_directories(__Boost_beast SYSTEM INTERFACE ${PROJECT_SOURCE_DIR}/lib/beast/include)
 
-    add_library(Boost::beast ALIAS __Boost_beast)
-elseif(CMAKE_VERSION VERSION_LESS 3.5)
-    define_boost_target(beast)
+		add_library(Boost::beast ALIAS __Boost_beast)
+	elseif(CMAKE_VERSION VERSION_LESS 3.5)
+		define_boost_target(beast)
+	endif()
+
+else()
+	SET(BOOST_BEAST_ROOT ${EXTERNAL_BASE_PATH}/beast)
+	add_library(__Boost_beast INTERFACE)
+	
+	target_link_libraries(__Boost_beast INTERFACE Boost::system ${ssl_lib} ${crypto_lib})
+	target_include_directories(__Boost_beast SYSTEM INTERFACE ${BOOST_BEAST_ROOT}/include)
 endif()
 
+add_library(Boost::beast ALIAS __Boost_beast)
 set(HEXICORD_DEPENDENCIES ${HEXICORD_DEPENDENCIES} Boost::beast)
 
 #------------------------------------------------------------------------------

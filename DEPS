@@ -1,9 +1,11 @@
 vars = {
     'github_sertsch1': 'https://github.com/sertsch1',
 	'github_paul': 'https://github.com/pol51',
+	'github_boostorg': 'https://github.com/boostorg',
 }
 
 deps = {
     'external/boost': Var('github_sertsch1') + '/boost.git@a94f11ae975b105b444f72a2ad7595a2aa519067',
+	'external/beast': Var('github_boostorg') + '/beast.git@d6fce5a00fd29862fde58abc15f2bbc33fe13ce4',
 	'external/openssl': Var('github_paul') + '/OpenSSL-CMake.git@3d4fe696e28665b3b642ed2ce87ba4a02230c53d',
 }
