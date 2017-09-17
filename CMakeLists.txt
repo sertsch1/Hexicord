@@ -108,13 +108,14 @@ endif()
 
 #------------------------------------------------------------------------------
 # External dependencies
-option(Boost_USE_FROM_DEPS "Use boost from deps" ON)
+option(Boost_USE_FROM_DEPS "Use boost from deps" OFF)
 option(Boost_USE_STATIC_LIBS    "Use static boost libraries." OFF)
 option(Boost_USE_STATIC_RUNTIME "Use static boost runtime."   OFF)
-option(Boost_USE_BEAST_FROM_DEPS "Use boost beast from deps" ON)
+option(Boost_USE_BEAST_FROM_DEPS "Use boost beast from deps" OFF)
 
-option(OpenSSL_USE_FROM_DEPS "Use openssl from deps" ON)
+option(OpenSSL_USE_FROM_DEPS "Use openssl from deps" OFF)
 option(OPENSSL_USE_STATIC_LIBS  "Use static OpenSSL."         OFF)
+option(USE_BORING_SSL "Use boring ssl fork" OFF)
 
 # Default cryptop libs#
 set(crypto_lib OpenSSL::Crypto)
@@ -132,19 +133,27 @@ if(NOT Boost_USE_FROM_DEPS)
 	find_package(Boost REQUIRED COMPONENTS system)
 else()
 	add_subdirectory(${EXTERNAL_BASE_PATH}/boost ../bin_hexicord_boost)
-	set(boost_lib boost::system)
+	set(boost_lib boost::system boost::asio)
 endif()
 
-if(NOT OpenSSL_USE_FROM_DEPS)
-	find_package(OpenSSL REQUIRED)
-else()
-	add_subdirectory(${EXTERNAL_BASE_PATH}/openssl ../bin_hexicord_openssl)
-	
+if (USE_BORING_SSL)
+	add_subdirectory(${EXTERNAL_BASE_PATH}/boringssl ../bin_hexicord_boringssl)
+
 	# Paul's openssl lib differs from original lib names
 	set(crypto_lib crypto)
 	set(ssl_lib ssl)
+else()
+	if(NOT OpenSSL_USE_FROM_DEPS)
+		SET(OPENSSL_ROOT_DIR ${EXTERNAL_BASE_PATH}/openssl)
+		find_package(OpenSSL REQUIRED)
+	else()
+		add_subdirectory(${EXTERNAL_BASE_PATH}/openssl ../bin_hexicord_openssl)
+		
+		# Paul's openssl lib differs from original lib names
+		set(crypto_lib crypto)
+		set(ssl_lib ssl)
+	endif()
 endif()
-
 set(HEXICORD_DEPENDENCIES Threads::Threads ${boost_lib} ${ssl_lib} ${crypto_lib})
 
 #------------------------------------------------------------------------------

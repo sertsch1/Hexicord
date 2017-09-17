@@ -17,7 +17,7 @@ namespace Hexicord {
             unsigned      counter       : 12;
             unsigned      processId     : 5;
             unsigned      workerId      : 5;
-            unsigned long timestamp     : 42;
+            unsigned long long timestamp     : 42;
         };
 
         union {
